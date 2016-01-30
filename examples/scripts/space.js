@@ -37,6 +37,12 @@ var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
 var SHELL_UI_Y = 10;
 var SHELL_UI_X = 400;
 
+//Laser details
+var LASER_SHOT_IMG = "images/cat.png";
+var LASER_SHOT_WIDTH = 16;
+var LASER_SHOT_HEIGHT = 6;
+var LASER_SHOT_SPEED = 4;
+
 
 //Aliases
 var Container = PIXI.Container,
@@ -61,15 +67,19 @@ loader
   .add(CRYSTAL_ICON_UI_IMG)
   .add(VEG_ICON_UI_IMG)
   .add(SHELL_ICON_UI_IMG)
+  .add(LASER_SHOT_IMG)
   .load(setup);
 
 //Define variables that might be used in more
 //than one function
 var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
-    ship, crystalUi, vegUi, shellUi;
+    ship, crystalUi, vegUi, shellUi, laserShots, lastMove;
 
 function setup() {
+
+  //set the initial last move to right
+  lastMove = "right";
 
   //Make the game scene and add it to the stage
   gameScene = new Container();
@@ -141,6 +151,9 @@ function setup() {
 
   //An array to store all the monsters
   monsters = [];
+
+  //array to contain all laser shots in the arena
+  laserShots = [];
 
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfMonsters; i++) {
@@ -217,7 +230,40 @@ function setup() {
   var left = keyboard(37),
       up = keyboard(38),
       right = keyboard(39),
-      down = keyboard(40);
+      down = keyboard(40),
+      shoot = keyboard(32);
+
+  //when space is pressed fire the lazer!
+  shoot.press = function() {
+    var laserShot = new Sprite(resources[SHIP_IMG].texture);
+
+    //use the explorer's current position as the initial position of the new laser shot
+    laserShot.x = explorer.x;
+    laserShot.y = explorer.y;
+    laserShot.width = LASER_SHOT_WIDTH;
+    laserShot.height = LASER_SHOT_HEIGHT;
+
+    //initially the laser should have no speed in any direction until the last movement of the explorer is determined
+    laserShot.vy = 0;
+    laserShot.vx = 0;
+
+    //the laser will move in the direction of the last move of the explorer
+    if(lastMove == "up" || lastMove == "down") {
+        laserShot.vy = -1 * (LASER_SHOT_SPEED);
+    }
+    if (lastMove == "down") {
+        laserShot.vy = LASER_SHOT_SPEED;
+    }
+    if (lastMove == "right") {
+        laserShot.vx = LASER_SHOT_SPEED;
+    }
+    if (lastMove == "left") {
+        laserShot.vx = -1 * (LASER_SHOT_SPEED);
+    }
+
+    laserShots.push(laserShot);
+    gameScene.addChild(laserShot);
+  }
 
   //Left arrow key `press` method
   left.press = function() {
@@ -236,6 +282,7 @@ function setup() {
     if (!right.isDown && explorer.vy === 0) {
       explorer.vx = 0;
     }
+    lastMove = "left";
   };
 
   //Up
@@ -247,6 +294,7 @@ function setup() {
     if (!down.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
+    lastMove = "up";
   };
 
   //Right
@@ -258,6 +306,7 @@ function setup() {
     if (!left.isDown && explorer.vy === 0) {
       explorer.vx = 0;
     }
+    lastMove = "right";
   };
 
   //Down
@@ -269,6 +318,7 @@ function setup() {
     if (!up.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
+    lastMove = "down";
   };
 
   //Set the game state
@@ -322,6 +372,22 @@ function play() {
     //the explorer, set `explorerHit` to `true`
     if(hitTestRectangle(explorer, monster)) {
       explorerHit = true;
+    }
+  });
+
+  //iterate through each laser shot and update its position or hide it if it leaves the board
+  laserShots.forEach(function(laser) {
+    //update the position of each laser shot based on its velocity
+    laser.x += laser.vx;
+    laser.y += laser.vy;
+
+    //check if the laser has left the play area on the x axis
+    if(laser.x > (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) || laser.x < PLAY_AREA_ORIGIN_X) {
+      laser.visible = false;
+    }
+    //check if the laser has left the play area on the y axis
+    if(laser.y > (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y) || laser.y < PLAY_AREA_ORIGIN_Y) {
+      laser.visible = false;
     }
   });
 
