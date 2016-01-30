@@ -12,6 +12,12 @@ var PLAYER_IMG = "images/cat.png"
 var PLAYER_START_Y = 350;
 var PLAYER_START_X = 450;
 
+var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
+var CRYSTAL_UI_Y = 10;
+var CRYSTAL_UI_X = 100;
+
+
+
 //Aliases
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -28,10 +34,11 @@ document.body.appendChild(renderer.view);
 loader
   .add(PLAYER_IMG)
   .add(SHIP_IMG)
+  .add(CRYSTAL_ICON_UI_IMG)
   .load(setup);
 
 //Define any variables that are used in more than one function
-var player, ship, state;
+var player, ship, state, crystalUi;
 
 function setup() {
 
@@ -49,9 +56,15 @@ function setup() {
   ship.height = SHIP_HEIGHT;
   ship.vx = 0;
   ship.vy = 0;
-
+  
+  crystalUi = new Sprite(resources[CRYSTAL_ICON_UI_IMG].texture)
+  crystalUi.y = CRYSTAL_UI_Y;
+  crystalUi.x = CRYSTAL_UI_X;
+  
+  
   stage.addChild(ship);
   stage.addChild(player);
+  stage.addChild(crystalUi);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
