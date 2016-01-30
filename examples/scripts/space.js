@@ -57,6 +57,8 @@ var SURFACE_MONSTER_IMGS = ["images/space/SurfaceCreature1.png", "images/space/S
 var SURFACE_MONSTER_WIDTH = 30;
 var SURFACE_MONSTER_HEIGHT = 25;
 var SURFACE_MONSTER_IMG_UPDATE_FREQ = 20;
+//maximum speed the surface monster will move at
+var SURFACE_MONSTER_SPEED = 1;
 
 //player details
 var PLAYER_BACK_IMGS = ["images/space/PlayerBack1.png","images/space/PlayerBack2.png","images/space/PlayerBack3.png"];
@@ -263,6 +265,7 @@ function setup() {
     //move up. Multiplying `direction` by `speed` determines the monster's
     //vertical direction
     monster.vy = speed * direction;
+    monster.vx = 0;
 
     //Reverse the direction for the next monster
     direction *= -1;
@@ -573,8 +576,9 @@ function play() {
   //Loop through all the sprites in the `enemies` array
   monsters.forEach(function(monster) {
 
-    //Move the monster
+    //Move the monster according to their current velocity
     monster.y += monster.vy;
+    monster.x += monster.vx;
 
     //change the monster image randomly based on the frequency set - a higher frequency makes the monster update less often
     var randomIntMonsterImgIndex = randomInt(0,SURFACE_MONSTER_IMG_UPDATE_FREQ);
@@ -583,7 +587,29 @@ function play() {
         //get this monster's current values so the predecessor monster can inherit these values
         var monsterX = monster.x;
         var monsterY = monster.y;
-        var monsterVy = monster.vy;
+
+        //reset monster's velocity to zero
+        var monsterVx = 0;
+        var monsterVy = 0;
+
+        //if the monster is to the left of the player move the monster right
+        if(monster.x < explorer.x) {
+            monsterVx = SURFACE_MONSTER_SPEED;
+        }
+        //if the monster is to the right of the player move the monster left
+        if(monster.x > explorer.x) {
+            monsterVx = -SURFACE_MONSTER_SPEED;
+        }
+        //if the monster is above the player move the monster down
+        if(monster.y < explorer.y) {
+            monsterVy = SURFACE_MONSTER_SPEED;
+        }
+        //if the monster is below the player move the monster up
+        if(monster.y > explorer.y) {
+            monsterVy = -SURFACE_MONSTER_SPEED;
+        }
+
+        //var monsterVy = monster.vy;
 
         //make the old monster invisible
         monster.visible = false;
@@ -606,6 +632,7 @@ function play() {
         //move up. Multiplying `direction` by `speed` determines the monster's
         //vertical direction
         newMonster.vy = monsterVy; //speed * direction;
+        newMonster.vx = monsterVx;
 
         //Push the monster into the `monsters` array
         monsters.push(newMonster);
@@ -616,7 +643,7 @@ function play() {
     }
 
     //Check the monster's screen boundaries
-    var monsterHitsWall = contain(monster, {x: 28, y: 10, width: 488, height: 480});
+    var monsterHitsWall = contain(monster, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
 
     //If the monster hits the top or bottom of the stage, reverse
     //its direction
