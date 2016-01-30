@@ -14,7 +14,15 @@ var PLAYER_START_X = 450;
 
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
-var CRYSTAL_UI_X = 100;
+var CRYSTAL_UI_X = 200;
+
+var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
+var VEG_UI_Y = 10;
+var VEG_UI_X = 300;
+
+var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
+var SHELL_UI_Y = 10;
+var SHELL_UI_X = 400;
 
 
 
@@ -35,10 +43,12 @@ loader
   .add(PLAYER_IMG)
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
+  .add(VEG_ICON_UI_IMG)
+  .add(SHELL_ICON_UI_IMG)
   .load(setup);
 
 //Define any variables that are used in more than one function
-var player, ship, state, crystalUi;
+var player, ship, state, crystalUi, vegUi, shellUi;
 
 function setup() {
 
@@ -60,11 +70,20 @@ function setup() {
   crystalUi = new Sprite(resources[CRYSTAL_ICON_UI_IMG].texture)
   crystalUi.y = CRYSTAL_UI_Y;
   crystalUi.x = CRYSTAL_UI_X;
-  
+
+  vegUi = new Sprite(resources[VEG_ICON_UI_IMG].texture)
+  vegUi.y = VEG_UI_Y;
+  vegUi.x = VEG_UI_X;
+
+  shellUi = new Sprite(resources[SHELL_ICON_UI_IMG].texture)
+  shellUi.y = SHELL_UI_Y;
+  shellUi.x = SHELL_UI_X;  
   
   stage.addChild(ship);
   stage.addChild(player);
   stage.addChild(crystalUi);
+  stage.addChild(vegUi);
+  stage.addChild(shellUi);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
