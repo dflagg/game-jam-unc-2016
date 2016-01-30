@@ -9,6 +9,7 @@ var PLAY_ARENA_WIDTH = 700;
 var PLAY_ARENA_HEIGHT = 500;
 var PLAY_AREA_ORIGIN_X = 50;
 var PLAY_AREA_ORIGIN_Y = 50;
+var GAME_ARENA_START_IMG = "images/space/Area1-1.jpg"
 
 //Crashed ship details
 var SHIP_IMG = "images/space/ship.jpeg"
@@ -57,6 +58,16 @@ var SURFACE_MONSTER_WIDTH = 30;
 var SURFACE_MONSTER_HEIGHT = 25;
 var SURFACE_MONSTER_IMG_UPDATE_FREQ = 20;
 
+//player details
+var PLAYER_BACK_IMGS = ["images/space/PlayerBack1.png","images/space/PlayerBack2.png","images/space/PlayerBack3.png"];
+var PLAYER_FRONT_IMGS = ["images/space/PlayerFront1.png","images/space/PlayerFront2.png","images/space/PlayerFront3.png"];
+var PLAYER_RIGHT_IMGS = ["images/space/PlayerRight1.png","images/space/PlayerRight2.png","images/space/PlayerRight3.png"];
+var PLAYER_LEFT_IMGS = ["images/space/PlayerLeft1.png","images/space/PlayerLeft2.png","images/space/PlayerLeft3.png"];
+var PLAYER_HEIGHT = 50;
+var PLAYER_WIDTH = 20;
+//larger value causes the image to update less frequently
+var PLAYER_WALK_FREQUENCY = 8;
+
 //fonts 
 var font1 = "fonts/CHECKBK0.TTF"
 var font2 = "fonts/TABU TRIAL____.otf"
@@ -83,6 +94,20 @@ SURFACE_MONSTER_IMGS.forEach(function(img) {
     loader.add(img);
 });
 
+//load all the player images for player animations
+PLAYER_BACK_IMGS.forEach(function(img) {
+    loader.add(img);
+});
+PLAYER_FRONT_IMGS.forEach(function(img) {
+    loader.add(img);
+});
+PLAYER_LEFT_IMGS.forEach(function(img) {
+    loader.add(img);
+});
+PLAYER_RIGHT_IMGS.forEach(function(img) {
+    loader.add(img);
+});
+
 loader
   .add("images/treasureHunter.json")
   .add(SHIP_IMG)
@@ -91,6 +116,7 @@ loader
   .add(SHELL_ICON_UI_IMG)
   .add(LASER_SHOT_IMG)
   .add(ENERGY_BAR_UI_IMG)
+  .add(GAME_ARENA_START_IMG)
   .load(setup);
 
 //Define variables that might be used in more
@@ -99,9 +125,18 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
     ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
-	epUseSpeed, ep, epBarLength, maxEp;
+	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving;
 
 function setup() {
+
+  //initially the player should not be moving
+  playerMoving = false;
+
+  //walk tick animation index
+  walkTick = 0;
+
+  //game play tick
+  playTick = 0;
 
   //initial number of monsters killed
   monstersKilled = 0;
@@ -121,7 +156,7 @@ function setup() {
   id = resources["images/treasureHunter.json"].textures;
 
   //Dungeon
-  dungeon = new Sprite(id["dungeon.png"]);
+  dungeon = new Sprite(resources[GAME_ARENA_START_IMG].texture);
   dungeon.width = PLAY_ARENA_WIDTH;
   dungeon.height = PLAY_ARENA_HEIGHT;
   dungeon.x = PLAY_AREA_ORIGIN_X;
@@ -175,11 +210,13 @@ function setup() {
   gameScene.addChild(energyBarUi);
 
   //Explorer
-  explorer = new Sprite(id["explorer.png"]);
+  explorer = new Sprite(resources[PLAYER_FRONT_IMGS[0]].texture);
   explorer.x = 68;
   explorer.y = gameScene.height / 2 - explorer.height / 2;
   explorer.vx = 0;
   explorer.vy = 0;
+  explorer.width = PLAYER_WIDTH;
+  explorer.height = PLAYER_HEIGHT;
   gameScene.addChild(explorer);
 
   //Treasure
@@ -378,6 +415,10 @@ function setup() {
     //Change the explorer's velocity when the key is pressed
     explorer.vx = -5;
     explorer.vy = 0;
+
+    updateExplorer(PLAYER_LEFT_IMGS[0]);
+    lastMove = "left";
+    playerMoving = true;
   };
 
   //Left arrow key `release` method
@@ -390,42 +431,58 @@ function setup() {
       explorer.vx = 0;
     }
     lastMove = "left";
+    playerMoving = false;
   };
 
   //Up
   up.press = function() {
     explorer.vy = -5;
     explorer.vx = 0;
+
+    updateExplorer(PLAYER_BACK_IMGS[0]);
+    lastMove = "up";
+    playerMoving = true;
   };
   up.release = function() {
     if (!down.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
     lastMove = "up";
+    playerMoving = false;
   };
 
   //Right
   right.press = function() {
     explorer.vx = 5;
     explorer.vy = 0;
+
+    updateExplorer(PLAYER_RIGHT_IMGS[0]);
+    lastMove = "right";
+    playerMoving = true;
   };
   right.release = function() {
     if (!left.isDown && explorer.vy === 0) {
       explorer.vx = 0;
     }
     lastMove = "right";
+    playerMoving = false;
   };
 
   //Down
   down.press = function() {
     explorer.vy = 5;
     explorer.vx = 0;
+
+    updateExplorer(PLAYER_FRONT_IMGS[0]);
+    lastMove = "down";
+    playerMoving = true;
   };
   down.release = function() {
     if (!up.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
     lastMove = "down";
+    playerMoving = false;
   };
 
   //Set the game state
@@ -433,6 +490,25 @@ function setup() {
 
   //Start the game loop
   gameLoop();
+}
+
+//change the image of the explorer to the new image
+function updateExplorer(newImg) {
+    explorer.visible = false;
+
+    var oldExplorerX = explorer.x;
+    var oldExplorerY = explorer.y;
+    var oldExplorerVy = explorer.vy;
+    var oldExplorerVx = explorer.vx;
+
+    explorer = new Sprite(resources[newImg].texture);
+    explorer.x = oldExplorerX;
+    explorer.y = oldExplorerY;
+    explorer.vx = oldExplorerVx;
+    explorer.vy = oldExplorerVy;
+    explorer.width = PLAYER_WIDTH;
+    explorer.height = PLAYER_HEIGHT;
+    gameScene.addChild(explorer);
 }
 
 function gameLoop(){
@@ -449,9 +525,43 @@ function gameLoop(){
 
 function play() {
 
+  //increment the number of ticks that the game has run for
+  playTick += 1;
+
   //use the explorer's velocity to make it move
   explorer.x += explorer.vx;
   explorer.y += explorer.vy;
+
+  //check if this play tick we should update the player's image
+  if(playTick % PLAYER_WALK_FREQUENCY == 0) {
+    //increment the walk tick so we can show a new image
+    walkTick += 1;
+
+    //reset the walk tick if we reach the end of the walk images available
+    if(walkTick >= PLAYER_BACK_IMGS.length) {
+        walkTick = 0;
+    }
+
+    //if the player is moving (holding down one of the movement keys) update the image according to which direction
+    //the player is moving
+    if (playerMoving) {
+
+        if(lastMove == "up") {
+            updateExplorer(PLAYER_BACK_IMGS[walkTick]);
+        }
+        if(lastMove == "down") {
+            updateExplorer(PLAYER_FRONT_IMGS[walkTick]);
+        }
+        if(lastMove == "left") {
+            updateExplorer(PLAYER_LEFT_IMGS[walkTick]);
+        }
+        if(lastMove == "right") {
+            updateExplorer(PLAYER_RIGHT_IMGS[walkTick]);
+        }
+
+    }
+
+  }
 
   //Contain the explorer inside the area of the dungeon
   contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
