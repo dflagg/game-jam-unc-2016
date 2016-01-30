@@ -81,9 +81,16 @@ loader
 //than one function
 var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
-    ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi;
+    ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
+    monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage;
 
 function setup() {
+
+  //initial number of monsters killed
+  monstersKilled = 0;
+
+  //initial value of the laser shots fired
+  laserShotsFired = 0;
 
   //set the initial last move to right
   lastMove = "right";
@@ -245,6 +252,24 @@ function setup() {
   message.y = stage.height / 2 - 32;
   gameOverScene.addChild(message);
 
+  //the message displaying the number of laser shots fired
+  shotsFiredMessage = new Text (
+    "Laser Shots: " + laserShotsFired,
+    {font: "14px Futura", fill: "white"}
+  );
+  shotsFiredMessage.x = 650;
+  shotsFiredMessage.y = 10;
+  gameScene.addChild(shotsFiredMessage);
+
+  //the message displaying the number of monsters killed
+  monstersKilledMessage = new Text (
+    "Monsters killed: " + monstersKilled,
+    {font: "14px Futura", fill: "white"}
+  );
+  monstersKilledMessage.x = 650;
+  monstersKilledMessage.y = 25;
+  gameScene.addChild(monstersKilledMessage);
+
   //Capture the keyboard arrow keys
   var left = keyboard(37),
       up = keyboard(38),
@@ -258,6 +283,12 @@ function setup() {
 
   //when space is pressed fire the lazer!
   shoot.press = function() {
+    //increment the number of laser shots fired each time the space bar is pressed
+    laserShotsFired += 1;
+
+    //update the lasers fired message
+    shotsFiredMessage.text = "Laser Shots: " + laserShotsFired
+
     var laserShot = new Sprite(resources[SHIP_IMG].texture);
 
     //use the explorer's current position as the initial position of the new laser shot
@@ -429,13 +460,48 @@ function play() {
     laser.x += laser.vx;
     laser.y += laser.vy;
 
+    //iterate through all the monsters to look for laser hits
+    monsters.forEach(function(monster) {
+
+      //check if the laser hit the monster
+      if(hitTestRectangle(laser, monster)) {
+
+          //increment the number of monsters killed
+          monstersKilled += 1;
+
+          //update the monsters killed message
+          monstersKilledMessage.text = "Monsters killed: " + monstersKilled;
+
+          //stop the monster
+          monster.vy = 0;
+          //hide the laser image
+          laser.visible = false;
+
+          //find the index of the monster we just killed so we can remove it
+          var deadMonsterIndex = monsters.indexOf(monster);
+          monsters.splice(deadMonsterIndex, 1);
+
+          //find the index of the laser that hit the monster so we can remove the laser
+          var expendedLaserIndex = laserShots.indexOf(laser);
+          laserShots.splice(expendedLaserIndex, 1);
+
+      }
+
+    });
+
     //check if the laser has left the play area on the x axis
     if(laser.x > (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) || laser.x < PLAY_AREA_ORIGIN_X) {
       laser.visible = false;
+      //find the index of the laser that reached the game boundary so we can remove it from play
+      var missedLaserIndex = laserShots.indexOf(laser);
+      laserShots.splice(missedLaserIndex, 1);
     }
     //check if the laser has left the play area on the y axis
     if(laser.y > (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y) || laser.y < PLAY_AREA_ORIGIN_Y) {
       laser.visible = false;
+      //find the index of the laser that reached the game boundary so we can remove it from play
+      var missedLaserIndex = laserShots.indexOf(laser);
+      laserShots.splice(missedLaserIndex, 1);
     }
   });
 
