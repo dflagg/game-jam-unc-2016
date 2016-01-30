@@ -2,6 +2,9 @@
 var GAME_BOARD_WIDTH = 800;
 var GAME_BOARD_HEIGHT = 600;
 
+var PLAY_ARENA_WIDTH = 700;
+var PLAY_ARENA_HEIGHT = 500;
+
 var SHIP_IMG = "images/space/ship.jpeg"
 var SHIP_POSITION_Y = 250;
 var SHIP_POSITION_X = 350;
@@ -38,9 +41,23 @@ loader
   .load(setup);
 
 //Define any variables that are used in more than one function
-var player, ship, state, crystalUi;
+var player, ship, state, box, message, crystalUi, laser;
 
 function setup() {
+
+//Create the box
+  box = new PIXI.Graphics();
+  box.beginFill(0xCCFF99);
+  box.drawRect(0, 0, PLAY_ARENA_WIDTH, PLAY_ARENA_HEIGHT);
+  box.endFill();
+  box.x = 50;
+  box.y = 50;
+  stage.addChild(box);
+
+  laser = new PIXI.Graphics();
+  laser.beginFill(0x0000ff);
+  laser.drawRect(0, 0, 4, 4)
+  laser.endFill();
 
   //Create the `cat` sprite
   player = new Sprite(resources[PLAYER_IMG].texture);
@@ -61,16 +78,25 @@ function setup() {
   crystalUi.y = CRYSTAL_UI_Y;
   crystalUi.x = CRYSTAL_UI_X;
   
-  
+    //Create the text sprite
+      message = new PIXI.Text(
+        "No collision...",
+        {font: "18px sans-serif", fill: "white"}
+      );
+      message.position.set(8, 8);
+      stage.addChild(message);
+
   stage.addChild(ship);
   stage.addChild(player);
   stage.addChild(crystalUi);
+  stage.addChild(laser);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
       up = keyboard(38),
       right = keyboard(39),
       down = keyboard(40);
+      shoot = keyboard(32);
 
   //Left arrow key `press` method
   left.press = function() {
@@ -86,6 +112,13 @@ function setup() {
     if (!right.isDown && player.vy === 0) {
       player.vx = 0;
     }
+  };
+
+  shoot.press = function() {
+    laser.x = player.x;
+    laser.y = player.y;
+    laser.vx = 1;
+    laser.vy = 1;
   };
 
   //Up
@@ -145,7 +178,74 @@ function play() {
   //Use the cat's velocity to make it move
   player.x += player.vx;
   player.y += player.vy
+
+  //check for a collision between the cat and the box
+    if (hitTestRectangle(player, box)) {
+
+      //if there's a collision, change the message text
+      //and tint the box red
+      message.text = "hit!";
+      box.tint = 0xff3300;
+    } else {
+
+      //if there's no collision, reset the message
+      //text and the box's color
+      message.text = "No collision...";
+      box.tint = 0xccff99;
+    }
 }
+
+//The `hitTestRectangle` function
+function hitTestRectangle(r1, r2) {
+
+  //Define the variables we'll need to calculate
+  var hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+
+  //hit will determine whether there's a collision
+  hit = false;
+
+  //Find the center points of each sprite
+  r1.centerX = r1.x + r1.width / 2;
+  r1.centerY = r1.y + r1.height / 2;
+  r2.centerX = r2.x + r2.width / 2;
+  r2.centerY = r2.y + r2.height / 2;
+
+  //Find the half-widths and half-heights of each sprite
+  r1.halfWidth = r1.width / 2;
+  r1.halfHeight = r1.height / 2;
+  r2.halfWidth = r2.width / 2;
+  r2.halfHeight = r2.height / 2;
+
+  //Calculate the distance vector between the sprites
+  vx = r1.centerX - r2.centerX;
+  vy = r1.centerY - r2.centerY;
+
+  //Figure out the combined half-widths and half-heights
+  combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+  combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+  //Check for a collision on the x axis
+  if (Math.abs(vx) < combinedHalfWidths) {
+
+    //A collision might be occuring. Check for a collision on the y axis
+    if (Math.abs(vy) < combinedHalfHeights) {
+
+      //There's definitely a collision happening
+      hit = true;
+    } else {
+
+      //There's no collision on the y axis
+      hit = false;
+    }
+  } else {
+
+    //There's no collision on the x axis
+    hit = false;
+  }
+
+  //`hit` will be either `true` or `false`
+  return hit;
+};
 
 //The `keyboard` helper function
 function keyboard(keyCode) {
