@@ -25,17 +25,17 @@ var PLAYER_START_X = 450;
 //UI crystal
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
-var CRYSTAL_UI_X = 200;
+var CRYSTAL_UI_X = 300;
 
 //UI Food
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
 var VEG_UI_Y = 10;
-var VEG_UI_X = 300;
+var VEG_UI_X = 450;
 
 //UI carapaces
 var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
 var SHELL_UI_Y = 10;
-var SHELL_UI_X = 400;
+var SHELL_UI_X = 600;
 
 //Laser details
 var LASER_SHOT_IMG = "images/cat.png";
@@ -43,6 +43,12 @@ var LASER_SHOT_WIDTH = 16;
 var LASER_SHOT_HEIGHT = 6;
 var LASER_SHOT_SPEED = 4;
 
+//UI energy bar
+var ENERGY_BAR_UI_IMG = "images/space/EnergyBar.png"
+var ENERGY_BAR_UI_Y = 10;
+var ENERGY_BAR_UI_X = 60;
+var ENERGY_BAR_UI_WIDTH = 200
+var ENERGY_BAR_UI_HEIGHT = 30;
 
 //Aliases
 var Container = PIXI.Container,
@@ -68,13 +74,14 @@ loader
   .add(VEG_ICON_UI_IMG)
   .add(SHELL_ICON_UI_IMG)
   .add(LASER_SHOT_IMG)
+  .add(ENERGY_BAR_UI_IMG)
   .load(setup);
 
 //Define variables that might be used in more
 //than one function
 var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
-    ship, crystalUi, vegUi, shellUi, laserShots, lastMove;
+    ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi;
 
 function setup() {
 
@@ -120,6 +127,8 @@ function setup() {
   vegUi = new Sprite(resources[VEG_ICON_UI_IMG].texture)
   vegUi.y = VEG_UI_Y;
   vegUi.x = VEG_UI_X;
+  vegUi.width = 25;
+  vegUi.height = 42;
   gameScene.addChild(vegUi);
 
   //shell icon
@@ -127,6 +136,15 @@ function setup() {
   shellUi.y = SHELL_UI_Y;
   shellUi.x = SHELL_UI_X;
   gameScene.addChild(shellUi);
+  
+  //energy bar icon
+  energyBarUi = new Sprite(resources[ENERGY_BAR_UI_IMG].texture)
+  energyBarUi.y = ENERGY_BAR_UI_Y;
+  energyBarUi.x = ENERGY_BAR_UI_X;
+  energyBarUi.width = ENERGY_BAR_UI_WIDTH;
+  energyBarUi.height = ENERGY_BAR_UI_HEIGHT;
+
+  gameScene.addChild(energyBarUi);
 
   //Explorer
   explorer = new Sprite(id["explorer.png"]);
@@ -191,20 +209,21 @@ function setup() {
 
   //Create the health bar
   healthBar = new Container();
-  healthBar.position.set(stage.width - 170, 6)
+  healthBar.position.set(71, 20)
+  //healthBar.position.set(stage.width - 70, 6)
   gameScene.addChild(healthBar);
 
   //Create the black background rectangle
   var innerBar = new Graphics();
-  innerBar.beginFill(0x000000);
-  innerBar.drawRect(0, 0, 128, 8);
+  innerBar.beginFill(0xFF3300);
+  innerBar.drawRect(0, 0, 178, 8);
   innerBar.endFill();
   healthBar.addChild(innerBar);
 
   //Create the front red rectangle
   var outerBar = new Graphics();
-  outerBar.beginFill(0xFF3300);
-  outerBar.drawRect(0, 0, 128, 8);
+  outerBar.beginFill(0x00E000);
+  outerBar.drawRect(0, 0, 178, 8);
   outerBar.endFill();
   healthBar.addChild(outerBar);
 
@@ -231,7 +250,11 @@ function setup() {
       up = keyboard(38),
       right = keyboard(39),
       down = keyboard(40),
-      shoot = keyboard(32);
+      shoot = keyboard(32),
+      w = keyboard(87),
+      a = keyboard(65),
+      s = keyboard(83),
+      d = keyboard(68);;
 
   //when space is pressed fire the lazer!
   shoot.press = function() {
@@ -264,6 +287,31 @@ function setup() {
     laserShots.push(laserShot);
     gameScene.addChild(laserShot);
   }
+	  
+  w.press = function() {	
+	up.press();
+  };
+  w.release = function() {	
+	up.release();
+  }; 
+  a.press = function() {	
+	left.press();
+  };
+  a.release = function() {	
+	left.release();
+  }; 
+  s.press = function() {	
+	down.press();
+  };
+  s.release = function() {	
+	down.release();
+  }; 
+  d.press = function() {	
+	right.press();
+  };
+  d.release = function() {	
+	right.release();
+  };
 
   //Left arrow key `press` method
   left.press = function() {
