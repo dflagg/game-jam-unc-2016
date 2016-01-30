@@ -38,10 +38,10 @@ var SHELL_UI_Y = 10;
 var SHELL_UI_X = 600;
 
 //Laser details
-var LASER_SHOT_IMG = "images/cat.png";
-var LASER_SHOT_WIDTH = 16;
+var LASER_SHOT_IMG = "images/space/Shot.png";
+var LASER_SHOT_WIDTH = 6;
 var LASER_SHOT_HEIGHT = 6;
-var LASER_SHOT_SPEED = 4;
+var LASER_SHOT_SPEED = 8;
 
 //UI energy bar
 var ENERGY_BAR_UI_IMG = "images/space/EnergyBar.png"
@@ -49,6 +49,13 @@ var ENERGY_BAR_UI_Y = 10;
 var ENERGY_BAR_UI_X = 60;
 var ENERGY_BAR_UI_WIDTH = 200
 var ENERGY_BAR_UI_HEIGHT = 30;
+
+//monster details
+var SURFACE_MONSTER_IMGS = ["images/space/SurfaceCreature1.png", "images/space/SurfaceCreature2.png",
+                            "images/space/SurfaceCreature3.png", "images/space/SurfaceCreature4.png"];
+var SURFACE_MONSTER_WIDTH = 30;
+var SURFACE_MONSTER_HEIGHT = 25;
+var SURFACE_MONSTER_IMG_UPDATE_FREQ = 20;
 
 //Aliases
 var Container = PIXI.Container,
@@ -66,6 +73,11 @@ var Container = PIXI.Container,
 var stage = new Container(),
     renderer = autoDetectRenderer(GAME_BOARD_WIDTH, GAME_BOARD_HEIGHT);
 document.body.appendChild(renderer.view);
+
+//add each of the images for the surface monster
+SURFACE_MONSTER_IMGS.forEach(function(img) {
+    loader.add(img);
+});
 
 loader
   .add("images/treasureHunter.json")
@@ -184,7 +196,9 @@ function setup() {
   for (var i = 0; i < numberOfMonsters; i++) {
 
     //Make a monster
-    var monster = new Sprite(id["blob.png"]);
+    var monster = new Sprite(resources[SURFACE_MONSTER_IMGS[0]].texture);
+    monster.width = SURFACE_MONSTER_WIDTH;
+    monster.height = SURFACE_MONSTER_HEIGHT;
 
     //Space each monster horizontally according to the `spacing` value.
     //`xOffset` determines the point from the left of the screen
@@ -289,7 +303,7 @@ function setup() {
     //update the lasers fired message
     shotsFiredMessage.text = "Laser Shots: " + laserShotsFired
 
-    var laserShot = new Sprite(resources[SHIP_IMG].texture);
+    var laserShot = new Sprite(resources[LASER_SHOT_IMG].texture);
 
     //use the explorer's current position as the initial position of the new laser shot
     laserShot.x = explorer.x;
@@ -437,6 +451,45 @@ function play() {
 
     //Move the monster
     monster.y += monster.vy;
+
+    //change the monster image randomly based on the frequency set - a higher frequency makes the monster update less often
+    var randomIntMonsterImgIndex = randomInt(0,SURFACE_MONSTER_IMG_UPDATE_FREQ);
+    if(randomIntMonsterImgIndex < SURFACE_MONSTER_IMGS.length) {
+
+        //get this monster's current values so the predecessor monster can inherit these values
+        var monsterX = monster.x;
+        var monsterY = monster.y;
+        var monsterVy = monster.vy;
+
+        //make the old monster invisible
+        monster.visible = false;
+
+        //remove the old monster so we can replace him with a new sprite and new image
+        var oldMonsterIndex = monsters.indexOf(monster);
+        monsters.splice(oldMonsterIndex, 1);
+
+        //Make a new monster using the random monster image
+        var newMonster = new Sprite(resources[SURFACE_MONSTER_IMGS[randomIntMonsterImgIndex]].texture);
+        newMonster.width = SURFACE_MONSTER_WIDTH;
+        newMonster.height = SURFACE_MONSTER_HEIGHT;
+
+        //Set the monster's position
+        newMonster.x = monsterX;
+        newMonster.y = monsterY;
+
+        //Set the monster's vertical velocity. `direction` will be either `1` or
+        //`-1`. `1` means the enemy will move down and `-1` means the monster will
+        //move up. Multiplying `direction` by `speed` determines the monster's
+        //vertical direction
+        newMonster.vy = monsterVy; //speed * direction;
+
+        //Push the monster into the `monsters` array
+        monsters.push(newMonster);
+
+        //Add the monster to the `gameScene`
+        gameScene.addChild(newMonster);
+
+    }
 
     //Check the monster's screen boundaries
     var monsterHitsWall = contain(monster, {x: 28, y: 10, width: 488, height: 480});
