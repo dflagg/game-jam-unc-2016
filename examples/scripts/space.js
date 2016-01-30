@@ -57,6 +57,10 @@ var SURFACE_MONSTER_WIDTH = 30;
 var SURFACE_MONSTER_HEIGHT = 25;
 var SURFACE_MONSTER_IMG_UPDATE_FREQ = 20;
 
+//fonts 
+var font1 = "fonts/CHECKBK0.TTF"
+var font2 = "fonts/TABU TRIAL____.otf"
+
 //Aliases
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -94,7 +98,8 @@ loader
 var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
     ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
-    monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage;
+    monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
+	epUseSpeed, ep, epBarLength, maxEp;
 
 function setup() {
 
@@ -140,6 +145,8 @@ function setup() {
   crystalUi = new Sprite(resources[CRYSTAL_ICON_UI_IMG].texture)
   crystalUi.y = CRYSTAL_UI_Y;
   crystalUi.x = CRYSTAL_UI_X;
+  crystalUi.width = 20;
+  crystalUi.height = 35;
   gameScene.addChild(crystalUi);
 
   //food icon
@@ -154,6 +161,8 @@ function setup() {
   shellUi = new Sprite(resources[SHELL_ICON_UI_IMG].texture)
   shellUi.y = SHELL_UI_Y;
   shellUi.x = SHELL_UI_X;
+  shellUi.width = 20;
+  shellUi.height = 35;
   gameScene.addChild(shellUi);
   
   //energy bar icon
@@ -226,6 +235,10 @@ function setup() {
 
     //Add the monster to the `gameScene`
     gameScene.addChild(monster);
+	
+	//Set Initial ep
+	maxEp = 100
+	ep = 100
   }
 
   //Create the health bar
@@ -249,6 +262,7 @@ function setup() {
   healthBar.addChild(outerBar);
 
   healthBar.outer = outerBar;
+  healthBar.inner = innerBar;
 
   //Create the `gameOver` scene
   gameOverScene = new Container();
@@ -260,7 +274,7 @@ function setup() {
   //Create the text sprite and add it to the `gameOver` scene
   message = new Text(
     "The End!",
-    {font: "64px Futura", fill: "white"}
+    {font: "64px Arial", fill: "white"}
   );
   message.x = 120;
   message.y = stage.height / 2 - 32;
@@ -557,7 +571,30 @@ function play() {
       laserShots.splice(missedLaserIndex, 1);
     }
   });
-
+	
+  //energy system 
+  
+  healthBar.outer.width = (ep * 316 / (healthBar.inner.width))
+  
+  //Slowly looses energy
+  epUseSpeed = .1
+  
+  if (1 > 0) {
+	ep -= epUseSpeed;
+	
+  } 
+  
+  //Ship gives player energy
+  if (hitTestRectangle(explorer,ship)) {
+	ep = ep + 2;  
+  }
+  
+  //Max health
+  if (ep > maxEp){
+	ep = maxEp
+  }
+  
+  
   //If the explorer is hit...
   if(explorerHit) {
 
@@ -565,7 +602,7 @@ function play() {
     explorer.alpha = 0.5;
 
     //Reduce the width of the health bar's inner rectangle by 1 pixel
-    healthBar.outer.width -= 1;
+    ep -= 1;
 
   } else {
 
