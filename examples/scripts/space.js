@@ -1,32 +1,41 @@
-//constants
+//CONSTANTS
+
+//Entire game area including resource UI
 var GAME_BOARD_WIDTH = 800;
 var GAME_BOARD_HEIGHT = 600;
 
+//Playable area
 var PLAY_ARENA_WIDTH = 700;
 var PLAY_ARENA_HEIGHT = 500;
+var PLAY_AREA_ORIGIN_X = 50;
+var PLAY_AREA_ORIGIN_Y = 50;
 
+//Crashed ship details
 var SHIP_IMG = "images/space/ship.jpeg"
 var SHIP_POSITION_Y = 250;
 var SHIP_POSITION_X = 350;
 var SHIP_WIDTH = 120;
 var SHIP_HEIGHT = 120;
 
+//Player details
 var PLAYER_IMG = "images/cat.png"
 var PLAYER_START_Y = 350;
 var PLAYER_START_X = 450;
 
+//UI crystal
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
 var CRYSTAL_UI_X = 200;
 
+//UI Food
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
 var VEG_UI_Y = 10;
 var VEG_UI_X = 300;
 
+//UI carapaces
 var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
 var SHELL_UI_Y = 10;
 var SHELL_UI_X = 400;
-
 
 
 //Aliases
@@ -34,7 +43,11 @@ var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
     loader = PIXI.loader,
     resources = PIXI.loader.resources,
-    Sprite = PIXI.Sprite;
+    TextureCache = PIXI.utils.TextureCache,
+    Texture = PIXI.Texture,
+    Sprite = PIXI.Sprite,
+    Text = PIXI.Text,
+    Graphics = PIXI.Graphics;
 
 //Create a Pixi stage and renderer and add the
 //renderer.view to the DOM
@@ -43,138 +56,218 @@ var stage = new Container(),
 document.body.appendChild(renderer.view);
 
 loader
-  .add(PLAYER_IMG)
+  .add("images/treasureHunter.json")
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
   .add(VEG_ICON_UI_IMG)
   .add(SHELL_ICON_UI_IMG)
   .load(setup);
 
-//Define any variables that are used in more than one function
-var player, ship, state, box, message, crystalUi, laser, vegUi, shellUi;
+//Define variables that might be used in more
+//than one function
+var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
+    door, healthBar, message, gameScene, gameOverScene, enemies, id,
+    ship, crystalUi, vegUi, shellUi;
 
 function setup() {
 
-//Create the box
-  box = new PIXI.Graphics();
-  box.beginFill(0xCCFF99);
-  box.drawRect(0, 0, PLAY_ARENA_WIDTH, PLAY_ARENA_HEIGHT);
-  box.endFill();
-  box.x = 50;
-  box.y = 50;
-  stage.addChild(box);
+  //Make the game scene and add it to the stage
+  gameScene = new Container();
+  stage.addChild(gameScene);
 
-  laser = new PIXI.Graphics();
-  laser.beginFill(0x0000ff);
-  laser.drawRect(0, 0, 4, 4)
-  laser.endFill();
+  //Make the sprites and add them to the `gameScene`
+  //Create an alias for the texture atlas frame ids
+  id = resources["images/treasureHunter.json"].textures;
 
-  //Create the `cat` sprite
-  player = new Sprite(resources[PLAYER_IMG].texture);
-  player.y = PLAYER_START_Y;
-  player.x = PLAYER_START_X;
-  player.vx = 0;
-  player.vy = 0;
+  //Dungeon
+  dungeon = new Sprite(id["dungeon.png"]);
+  dungeon.width = PLAY_ARENA_WIDTH;
+  dungeon.height = PLAY_ARENA_HEIGHT;
+  dungeon.x = PLAY_AREA_ORIGIN_X;
+  dungeon.y = PLAY_AREA_ORIGIN_Y;
+  gameScene.addChild(dungeon);
 
+  //Door
+  door = new Sprite(id["door.png"]);
+  door.position.set(32, 0);
+  gameScene.addChild(door);
+
+  //ship
   ship = new Sprite(resources[SHIP_IMG].texture)
   ship.y = SHIP_POSITION_Y;
   ship.x = SHIP_POSITION_X;
   ship.width = SHIP_WIDTH;
   ship.height = SHIP_HEIGHT;
-  ship.vx = 0;
-  ship.vy = 0;
-  
+  gameScene.addChild(ship);
+
+  //crystal icon
   crystalUi = new Sprite(resources[CRYSTAL_ICON_UI_IMG].texture)
   crystalUi.y = CRYSTAL_UI_Y;
   crystalUi.x = CRYSTAL_UI_X;
+  gameScene.addChild(crystalUi);
 
-    //Create the text sprite
-      message = new PIXI.Text(
-        "No collision...",
-        {font: "18px sans-serif", fill: "white"}
-      );
-      message.position.set(8, 8);
-      stage.addChild(message);
-
-  stage.addChild(ship);
-  stage.addChild(player);
-  stage.addChild(crystalUi);
-  stage.addChild(laser);
-
+  //food icon
   vegUi = new Sprite(resources[VEG_ICON_UI_IMG].texture)
   vegUi.y = VEG_UI_Y;
   vegUi.x = VEG_UI_X;
+  gameScene.addChild(vegUi);
 
+  //shell icon
   shellUi = new Sprite(resources[SHELL_ICON_UI_IMG].texture)
   shellUi.y = SHELL_UI_Y;
-  shellUi.x = SHELL_UI_X;  
-  
-  stage.addChild(ship);
-  stage.addChild(player);
-  stage.addChild(crystalUi);
-  stage.addChild(vegUi);
-  stage.addChild(shellUi);
+  shellUi.x = SHELL_UI_X;
+  gameScene.addChild(shellUi);
+
+  //Explorer
+  explorer = new Sprite(id["explorer.png"]);
+  explorer.x = 68;
+  explorer.y = gameScene.height / 2 - explorer.height / 2;
+  explorer.vx = 0;
+  explorer.vy = 0;
+  gameScene.addChild(explorer);
+
+  //Treasure
+  treasure = new Sprite(id["treasure.png"]);
+  treasure.x = gameScene.width - treasure.width - 48;
+  treasure.y = gameScene.height / 2 - treasure.height / 2;
+  gameScene.addChild(treasure);
+
+  //Make the monsters
+  var numberOfMonsters = 6,
+      spacing = 48,
+      xOffset = 150,
+      speed = 2,
+      direction = 1;
+
+  //An array to store all the monsters
+  monsters = [];
+
+  //Make as many monster as there are `numberOfMonsters`
+  for (var i = 0; i < numberOfMonsters; i++) {
+
+    //Make a monster
+    var monster = new Sprite(id["blob.png"]);
+
+    //Space each monster horizontally according to the `spacing` value.
+    //`xOffset` determines the point from the left of the screen
+    //at which the first monster should be added
+    var x = spacing * i + xOffset;
+
+    //Give the monster a random y position
+    var y = randomInt(0, stage.height - monster.height);
+
+    //Set the monster's position
+    monster.x = x;
+    monster.y = y;
+
+    //Set the monster's vertical velocity. `direction` will be either `1` or
+    //`-1`. `1` means the enemy will move down and `-1` means the monster will
+    //move up. Multiplying `direction` by `speed` determines the monster's
+    //vertical direction
+    monster.vy = speed * direction;
+
+    //Reverse the direction for the next monster
+    direction *= -1;
+
+    //Push the monster into the `monsters` array
+    monsters.push(monster);
+
+    //Add the monster to the `gameScene`
+    gameScene.addChild(monster);
+  }
+
+  //Create the health bar
+  healthBar = new Container();
+  healthBar.position.set(stage.width - 170, 6)
+  gameScene.addChild(healthBar);
+
+  //Create the black background rectangle
+  var innerBar = new Graphics();
+  innerBar.beginFill(0x000000);
+  innerBar.drawRect(0, 0, 128, 8);
+  innerBar.endFill();
+  healthBar.addChild(innerBar);
+
+  //Create the front red rectangle
+  var outerBar = new Graphics();
+  outerBar.beginFill(0xFF3300);
+  outerBar.drawRect(0, 0, 128, 8);
+  outerBar.endFill();
+  healthBar.addChild(outerBar);
+
+  healthBar.outer = outerBar;
+
+  //Create the `gameOver` scene
+  gameOverScene = new Container();
+  stage.addChild(gameOverScene);
+
+  //Make the `gameOver` scene invisible when the game first starts
+  gameOverScene.visible = false;
+
+  //Create the text sprite and add it to the `gameOver` scene
+  message = new Text(
+    "The End!",
+    {font: "64px Futura", fill: "white"}
+  );
+  message.x = 120;
+  message.y = stage.height / 2 - 32;
+  gameOverScene.addChild(message);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
       up = keyboard(38),
       right = keyboard(39),
       down = keyboard(40);
-      shoot = keyboard(32);
 
   //Left arrow key `press` method
   left.press = function() {
-    //Change the cat's velocity when the key is pressed
-    player.vx = -5;
-    player.vy = 0;
-  };
-  //Left arrow key `release` method
-  left.release = function() {
-    //If the left arrow has been released, and the right arrow isn't down,
-    //and the cat isn't moving vertically:
-    //Stop the cat
-    if (!right.isDown && player.vy === 0) {
-      player.vx = 0;
-    }
+
+    //Change the explorer's velocity when the key is pressed
+    explorer.vx = -5;
+    explorer.vy = 0;
   };
 
-  shoot.press = function() {
-    laser.x = player.x;
-    laser.y = player.y;
-    laser.vx = 1;
-    laser.vy = 1;
+  //Left arrow key `release` method
+  left.release = function() {
+
+    //If the left arrow has been released, and the right arrow isn't down,
+    //and the explorer isn't moving vertically:
+    //Stop the explorer
+    if (!right.isDown && explorer.vy === 0) {
+      explorer.vx = 0;
+    }
   };
 
   //Up
   up.press = function() {
-    player.vy = -5;
-    player.vx = 0;
+    explorer.vy = -5;
+    explorer.vx = 0;
   };
   up.release = function() {
-    if (!down.isDown && player.vx === 0) {
-      player.vy = 0;
+    if (!down.isDown && explorer.vx === 0) {
+      explorer.vy = 0;
     }
   };
 
   //Right
   right.press = function() {
-    player.vx = 5;
-    player.vy = 0;
+    explorer.vx = 5;
+    explorer.vy = 0;
   };
   right.release = function() {
-    if (!left.isDown && player.vy === 0) {
-      player.vx = 0;
+    if (!left.isDown && explorer.vy === 0) {
+      explorer.vx = 0;
     }
   };
 
   //Down
   down.press = function() {
-    player.vy = 5;
-    player.vx = 0;
+    explorer.vy = 5;
+    explorer.vx = 0;
   };
   down.release = function() {
-    if (!up.isDown && player.vx === 0) {
-      player.vy = 0;
+    if (!up.isDown && explorer.vx === 0) {
+      explorer.vy = 0;
     }
   };
 
@@ -199,24 +292,114 @@ function gameLoop(){
 
 function play() {
 
-  //Use the cat's velocity to make it move
-  player.x += player.vx;
-  player.y += player.vy
+  //use the explorer's velocity to make it move
+  explorer.x += explorer.vx;
+  explorer.y += explorer.vy;
 
-  //check for a collision between the cat and the box
-    if (hitTestRectangle(player, box)) {
+  //Contain the explorer inside the area of the dungeon
+  contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
+  //contain(explorer, stage);
 
-      //if there's a collision, change the message text
-      //and tint the box red
-      message.text = "hit!";
-      box.tint = 0xff3300;
-    } else {
+  //Set `explorerHit` to `false` before checking for a collision
+  var explorerHit = false;
 
-      //if there's no collision, reset the message
-      //text and the box's color
-      message.text = "No collision...";
-      box.tint = 0xccff99;
+  //Loop through all the sprites in the `enemies` array
+  monsters.forEach(function(monster) {
+
+    //Move the monster
+    monster.y += monster.vy;
+
+    //Check the monster's screen boundaries
+    var monsterHitsWall = contain(monster, {x: 28, y: 10, width: 488, height: 480});
+
+    //If the monster hits the top or bottom of the stage, reverse
+    //its direction
+    if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
+      monster.vy *= -1;
     }
+
+    //Test for a collision. If any of the enemies are touching
+    //the explorer, set `explorerHit` to `true`
+    if(hitTestRectangle(explorer, monster)) {
+      explorerHit = true;
+    }
+  });
+
+  //If the explorer is hit...
+  if(explorerHit) {
+
+    //Make the explorer semi-transparent
+    explorer.alpha = 0.5;
+
+    //Reduce the width of the health bar's inner rectangle by 1 pixel
+    healthBar.outer.width -= 1;
+
+  } else {
+
+    //Make the explorer fully opaque (non-transparent) if it hasn't been hit
+    explorer.alpha = 1;
+  }
+
+  //Check for a collision between the explorer and the treasure
+  if (hitTestRectangle(explorer, treasure)) {
+
+    //If the treasure is touching the explorer, center it over the explorer
+    treasure.x = explorer.x + 8;
+    treasure.y = explorer.y + 8;
+  }
+
+  //Does the explorer have enough health? If the width of the `innerBar`
+  //is less than zero, end the game and display "You lost!"
+  if (healthBar.outer.width < 0) {
+    state = end;
+    message.text = "You lost!";
+  }
+
+  //If the explorer has brought the treasure to the exit,
+  //end the game and display "You won!"
+  if (hitTestRectangle(treasure, door)) {
+    state = end;
+    message.text = "You won!";
+  }
+}
+
+function end() {
+  gameScene.visible = false;
+  gameOverScene.visible = true;
+}
+
+/* Helper functions */
+
+function contain(sprite, container) {
+
+  var collision = undefined;
+
+  //Left
+  if (sprite.x < container.x) {
+    sprite.x = container.x;
+    collision = "left";
+  }
+
+  //Top
+  if (sprite.y < container.y) {
+    sprite.y = container.y;
+    collision = "top";
+  }
+
+  //Right
+  if (sprite.x + sprite.width > container.width) {
+    sprite.x = container.width - sprite.width;
+    collision = "right";
+  }
+
+  //Bottom
+  if (sprite.y + sprite.height > container.height) {
+    sprite.y = container.height - sprite.height;
+    collision = "bottom";
+  }
+
+  //Return the `collision` value
+  return collision;
 }
 
 //The `hitTestRectangle` function
@@ -271,6 +454,12 @@ function hitTestRectangle(r1, r2) {
   return hit;
 };
 
+
+//The `randomInt` helper function
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 //The `keyboard` helper function
 function keyboard(keyCode) {
   var key = {};
@@ -308,3 +497,5 @@ function keyboard(keyCode) {
   );
   return key;
 }
+
+//end new code
