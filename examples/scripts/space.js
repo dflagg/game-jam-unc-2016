@@ -1,3 +1,17 @@
+//constants
+var GAME_BOARD_WIDTH = 800;
+var GAME_BOARD_HEIGHT = 600;
+
+var SHIP_IMG = "images/space/ship.jpeg"
+var SHIP_POSITION_Y = 250;
+var SHIP_POSITION_X = 350;
+var SHIP_WIDTH = 120;
+var SHIP_HEIGHT = 120;
+
+var PLAYER_IMG = "images/cat.png"
+var PLAYER_START_Y = 350;
+var PLAYER_START_X = 450;
+
 //Aliases
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -8,24 +22,36 @@ var Container = PIXI.Container,
 //Create a Pixi stage and renderer and add the
 //renderer.view to the DOM
 var stage = new Container(),
-    renderer = autoDetectRenderer(256, 256);
+    renderer = autoDetectRenderer(GAME_BOARD_WIDTH, GAME_BOARD_HEIGHT);
 document.body.appendChild(renderer.view);
 
 loader
-  .add("images/cat.png")
+  .add(PLAYER_IMG)
+  .add(SHIP_IMG)
   .load(setup);
 
 //Define any variables that are used in more than one function
-var cat, state;
+var player, ship, state;
 
 function setup() {
 
   //Create the `cat` sprite
-  cat = new Sprite(resources["images/cat.png"].texture);
-  cat.y = 96;
-  cat.vx = 0;
-  cat.vy = 0;
-  stage.addChild(cat);
+  player = new Sprite(resources[PLAYER_IMG].texture);
+  player.y = PLAYER_START_Y;
+  player.x = PLAYER_START_X;
+  player.vx = 0;
+  player.vy = 0;
+
+  ship = new Sprite(resources[SHIP_IMG].texture)
+  ship.y = SHIP_POSITION_Y;
+  ship.x = SHIP_POSITION_X;
+  ship.width = SHIP_WIDTH;
+  ship.height = SHIP_HEIGHT;
+  ship.vx = 0;
+  ship.vy = 0;
+
+  stage.addChild(ship);
+  stage.addChild(player);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
@@ -36,49 +62,49 @@ function setup() {
   //Left arrow key `press` method
   left.press = function() {
     //Change the cat's velocity when the key is pressed
-    cat.vx = -5;
-    cat.vy = 0;
+    player.vx = -5;
+    player.vy = 0;
   };
   //Left arrow key `release` method
   left.release = function() {
     //If the left arrow has been released, and the right arrow isn't down,
     //and the cat isn't moving vertically:
     //Stop the cat
-    if (!right.isDown && cat.vy === 0) {
-      cat.vx = 0;
+    if (!right.isDown && player.vy === 0) {
+      player.vx = 0;
     }
   };
 
   //Up
   up.press = function() {
-    cat.vy = -5;
-    cat.vx = 0;
+    player.vy = -5;
+    player.vx = 0;
   };
   up.release = function() {
-    if (!down.isDown && cat.vx === 0) {
-      cat.vy = 0;
+    if (!down.isDown && player.vx === 0) {
+      player.vy = 0;
     }
   };
 
   //Right
   right.press = function() {
-    cat.vx = 5;
-    cat.vy = 0;
+    player.vx = 5;
+    player.vy = 0;
   };
   right.release = function() {
-    if (!left.isDown && cat.vy === 0) {
-      cat.vx = 0;
+    if (!left.isDown && player.vy === 0) {
+      player.vx = 0;
     }
   };
 
   //Down
   down.press = function() {
-    cat.vy = 5;
-    cat.vx = 0;
+    player.vy = 5;
+    player.vx = 0;
   };
   down.release = function() {
-    if (!up.isDown && cat.vx === 0) {
-      cat.vy = 0;
+    if (!up.isDown && player.vx === 0) {
+      player.vy = 0;
     }
   };
 
@@ -104,8 +130,8 @@ function gameLoop(){
 function play() {
 
   //Use the cat's velocity to make it move
-  cat.x += cat.vx;
-  cat.y += cat.vy
+  player.x += player.vx;
+  player.y += player.vy
 }
 
 //The `keyboard` helper function
