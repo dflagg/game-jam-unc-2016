@@ -139,7 +139,7 @@ loader
 
 //Define variables that might be used in more
 //than one function
-var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
+var state, explorer, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
     ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
@@ -241,12 +241,6 @@ function setup() {
   explorer.width = PLAYER_WIDTH;
   explorer.height = PLAYER_HEIGHT;
   gameScene.addChild(explorer);
-
-  //Treasure
-  treasure = new Sprite(id["treasure.png"]);
-  treasure.x = gameScene.width - treasure.width - 48;
-  treasure.y = gameScene.height / 2 - treasure.height / 2;
-  //gameScene.addChild(treasure);
  
   //array to contain veg on map
   vegUncollect = [];
@@ -1023,27 +1017,12 @@ function play() {
     //Make the explorer fully opaque (non-transparent) if it hasn't been hit
     explorer.alpha = 1;
   }
-
-  //Check for a collision between the explorer and the treasure
-  if (hitTestRectangle(explorer, treasure)) {
-
-    //If the treasure is touching the explorer, center it over the explorer
-    treasure.x = explorer.x + 8;
-    treasure.y = explorer.y + 8;
-  }
-
+  
   //Does the explorer have enough health? If the width of the `innerBar`
   //is less than zero, end the game and display "You lost!"
   if (healthBar.outer.width < 0) {
     state = end;
     message.text = "You lost!";
-  }
-
-  //If the explorer has brought the treasure to the exit,
-  //end the game and display "You won!"
-  if (hitTestRectangle(treasure, door)) {
-    state = end;
-    message.text = "You won!";
   }
 }
 
