@@ -4,6 +4,9 @@
 var GAME_BOARD_WIDTH = 800;
 var GAME_BOARD_HEIGHT = 600;
 
+//Title Screen
+var TITLE_SCREEN = "images/space/TitleScreen.jpg";
+
 //Playable area
 var PLAY_ARENA_WIDTH = 700;
 var PLAY_ARENA_HEIGHT = 500;
@@ -30,11 +33,13 @@ var PLAYER_START_X = 450;
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
 var CRYSTAL_UI_X = 300;
+var CRYS_PICKUP_IMG = "images/space/CrystalPickup.png"
 
 //UI Food
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
 var VEG_UI_Y = 10;
 var VEG_UI_X = 400;
+var VEG_PICKUP_IMG = "images/space/VegetationPickup.png"
 
 //UI carapaces
 var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
@@ -99,6 +104,7 @@ var currentArena = 11;
 var font1 = "fonts/CHECKBK0.TTF"
 var font2 = "fonts/TABU TRIAL____.otf"
 
+
 //Aliases
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -112,9 +118,11 @@ var Container = PIXI.Container,
 
 //Create a Pixi stage and renderer and add the
 //renderer.view to the DOM
+
 var stage = new Container(),
     renderer = autoDetectRenderer(GAME_BOARD_WIDTH, GAME_BOARD_HEIGHT);
 document.body.appendChild(renderer.view);
+
 
 //add each of the images for the surface monster
 SURFACE_MONSTER_IMGS.forEach(function(img) {
@@ -147,7 +155,9 @@ loader
   .add("images/treasureHunter.json")
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
+  .add(CRYS_PICKUP_IMG)
   .add(VEG_ICON_UI_IMG)
+  .add(VEG_PICKUP_IMG)
   .add(SHELL_ICON_UI_IMG)
   .add(LASER_SHOT_IMG)
   .add(ENERGY_BAR_UI_IMG)
@@ -156,6 +166,7 @@ loader
   .add(GAME_ARENA_2_2_IMG)
   .add(GAME_ARENA_2_3_IMG)
   .add(SHELL_DROP_IMG)
+  .add(TITLE_SCREEN)
   .load(setup);
 
 //Define variables that might be used in more
@@ -166,10 +177,30 @@ var state, explorer, monsters, chimes, exit, player, dungeon,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
-	shellsCollectedMessage, prologueScene, pauseScene, prologueScreen;
+	shellsCollectedMessage, prologueScene, pauseScene, prologueScreen, crysUncollect,
+	crysCollect, crysCounter, crys;
 
+	
 function setup() {
 
+	//music and sound
+	
+  sounds.load([
+	//"sounds/shoot.wav", 
+	"sounds/music.wav",
+	//"sounds/bounce.mp3",
+	//"sounds/Scavenger.mp3",
+	"sounds/laserShot.wav",
+	"sounds/SurfaceCreatureDie.wav"
+  ]);
+
+  var laserShotSound = sounds["sounds/laserShot.wav"],
+    SurfaceCreatureDie = sounds["SurfaceCreatureDie"],
+    music = sounds["sounds/music.wav"];
+	//scavenger = sounds["sounds/Scavenger.mp3"];
+    //bounce = sounds["sounds/bounce.mp3"];
+	
+	
   //initially zero shells have been collected
   shellsCollected = 0;
 
@@ -178,7 +209,7 @@ function setup() {
 
   //walk tick animation index
   walkTick = 0;
-
+	
   //game play tick
   playTick = 0;
 
@@ -263,31 +294,57 @@ function setup() {
   vegCollect = 0;
   var numberOfVeg = 5;
   
-  //Make as many monster as there are `numberOfMonsters`
+  //array to contain crys on map
+  crysUncollect = [];
+  crysCollect = 0;
+  var numberOfCrys = 4;
+  
+  //Make as many monster as there are `numberOfVeg`
   for (var i = 0; i < numberOfVeg; i++) {
 
-    //Make a monster
-    var veg = new Sprite(resources[VEG_ICON_UI_IMG].texture);
+    //Make a veg
+    var veg = new Sprite(resources[VEG_PICKUP_IMG].texture);
     //veg.width = ;
     //veg.height = ;
 
-    //Space each monster horizontally according to the `spacing` value.
-    //`xOffset` determines the point from the left of the screen
-    //at which the first monster should be added
+    //Determing coordinates
     var vegX = randomInt(100, stage.height - 100);
 
-    //Give the monster a random y position
     var vegY = randomInt(100, stage.height - 100);
 
-    //Set the monster's position
+    //Set the veg's position
     veg.x = vegX;
     veg.y = vegY;
 
-    //Push the monster into the `monsters` array
+    //Push the veg into the `vegUncollect` array
     vegUncollect.push(veg);
 
-    //Add the monster to the `gameScene`
+    //Add the veg to the `gameScene`
     gameScene.addChild(veg);
+  }
+  
+  //Make as many monster as there are `numberOfCrys`
+  for (var i = 0; i < numberOfCrys; i++) {
+
+    //Make a crys
+    var crys = new Sprite(resources[CRYS_PICKUP_IMG].texture);
+    //crys.width = ;
+    //crys.height = ;
+
+    //Determing coordinates
+    var crysX = randomInt(100, stage.height - 100);
+
+    var crysY = randomInt(100, stage.height - 100);
+
+    //Set the crys's position
+    crys.x = crysX;
+    crys.y = crysY;
+
+    //Push the crys into the `crysUncollect` array
+    crysUncollect.push(crys);
+
+    //Add the crys to the `gameScene`
+    gameScene.addChild(crys);
   }
   
   //Make the monsters
@@ -301,7 +358,7 @@ function setup() {
   //An array to store all the monsters
   monsters = [];
 
-  //an arrat to store the cave monsters
+  //an array to store the cave monsters
   caveMonsters = [];
 
   //array to contain all laser shots in the arena
@@ -383,7 +440,7 @@ function setup() {
     gameScene.addChild(monster);
 
   }
-
+  
   //Create the health bar
   //Set Initial ep
   maxEp = 100
@@ -472,6 +529,7 @@ function setup() {
   pauseMsg.y = stage.height / 2 - 42;
   pauseScene.addChild(pauseMsg);
   
+  
   //UI displaying number of veg collected
   vegCounter = new Text (
     vegCollect,
@@ -480,6 +538,15 @@ function setup() {
   vegCounter.x = 450;
   vegCounter.y = 12;
   gameScene.addChild(vegCounter);
+  
+  //UI displaying number of crys collected
+  crysCounter = new Text (
+    crysCollect,
+    {font: "30px Futura", fill: "green"}
+  );
+  crysCounter.x = 350;
+  crysCounter.y = 12;
+  gameScene.addChild(crysCounter);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
@@ -491,7 +558,9 @@ function setup() {
       a = keyboard(65),
       s = keyboard(83),
       d = keyboard(68),
-      enter = keyboard(13);
+      enter = keyboard(13),
+      q = keyboard(81),
+      e = keyboard(69);
 
   //toggle pause
   enter.press = function() {
@@ -533,13 +602,20 @@ function setup() {
 
   }
 
+  q.press = function() {
+	  music.play();
+  }
+  
+  e.press = function() {
+	  music.pause();
+  }
   
   //when space is pressed fire the lazer!
   shoot.press = function() {
     //increment the number of laser shots fired each time the space bar is pressed
     laserShotsFired += 1;
-	ep = ep - 10
-
+	ep = ep - 2
+	laserShotSound.play();
     //update the lasers fired message
     shotsFiredMessage.text = "Laser Shots: " + laserShotsFired
 
@@ -672,12 +748,16 @@ function setup() {
 
   //Set the game state
   state = play;
-
+  
   //Start the game loop
   gameLoop();
 
+  //run the initial prologue screens
   prologue();
+
 }
+
+
 
 //change the image of the explorer to the new image
 function updateExplorer(newImg) {
@@ -705,6 +785,7 @@ function gameLoop(){
 
   //Update the current game state
   state();
+  
 
   //Render the stage
   renderer.render(stage);
@@ -752,6 +833,8 @@ function play() {
       }
 
     }
+	
+	
 
     //Contain the explorer inside the area of the dungeon
     contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
@@ -1027,21 +1110,20 @@ function play() {
     healthBar.outer.width = (ep * 316 / (healthBar.inner.width))
 
     //Slowly looses energy
-    epUseSpeed = .1
+    epUseSpeed = .03
 
     if (1 > 0) {
-  	ep -= epUseSpeed;
-
+  	    ep -= epUseSpeed;
     }
 
     //Ship gives player energy
     if (hitTestRectangle(explorer,ship)) {
-  	ep = ep + rechargeRate;
+  	    ep = ep + rechargeRate;
     }
 
     //Max health
     if (ep > maxEp){
-  	ep = maxEp
+  	    ep = maxEp
     }
 
     vegUncollect.forEach(function (veg) {
@@ -1078,6 +1160,19 @@ function play() {
 
       }
 
+    });
+
+    crysUncollect.forEach(function (crys) {
+
+      //Crystal collectable
+      if (hitTestRectangle(explorer, crys)) {
+    	  crysCollect = crysCollect + 1;
+    	  crysCounter.text = crysCollect;
+    	  crys.visible = false;
+
+    	  var crysCollectIndex = crysUncollect.indexOf(crys);
+    		  crysUncollect.splice(crysCollectIndex, 1);
+      }
     });
 
     //If the explorer is hit...
@@ -1219,7 +1314,6 @@ function play() {
         }
 
     }
-
   }
 
 }
@@ -1509,3 +1603,5 @@ function keyboard(keyCode) {
   );
   return key;
 }
+
+  
