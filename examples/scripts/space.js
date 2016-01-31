@@ -4,6 +4,9 @@
 var GAME_BOARD_WIDTH = 800;
 var GAME_BOARD_HEIGHT = 600;
 
+//Title Screen
+var TITLE_SCREEN = "images/space/TitleScreen.jpg";
+
 //Playable area
 var PLAY_ARENA_WIDTH = 700;
 var PLAY_ARENA_HEIGHT = 500;
@@ -32,6 +35,7 @@ var CRYSTAL_UI_X = 300;
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
 var VEG_UI_Y = 10;
 var VEG_UI_X = 400;
+var VEG_PICKUP_IMG = "images/space/VegetationPickup.png"
 
 //UI carapaces
 var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
@@ -86,6 +90,7 @@ var PLAYER_WALK_FREQUENCY = 8;
 var font1 = "fonts/CHECKBK0.TTF"
 var font2 = "fonts/TABU TRIAL____.otf"
 
+
 //Aliases
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -99,9 +104,11 @@ var Container = PIXI.Container,
 
 //Create a Pixi stage and renderer and add the
 //renderer.view to the DOM
+
 var stage = new Container(),
     renderer = autoDetectRenderer(GAME_BOARD_WIDTH, GAME_BOARD_HEIGHT);
 document.body.appendChild(renderer.view);
+
 
 //add each of the images for the surface monster
 SURFACE_MONSTER_IMGS.forEach(function(img) {
@@ -130,11 +137,13 @@ loader
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
   .add(VEG_ICON_UI_IMG)
+  .add(VEG_PICKUP_IMG)
   .add(SHELL_ICON_UI_IMG)
   .add(LASER_SHOT_IMG)
   .add(ENERGY_BAR_UI_IMG)
   .add(GAME_ARENA_START_IMG)
   .add(SHELL_DROP_IMG)
+  .add(TITLE_SCREEN)
   .load(setup);
 
 //Define variables that might be used in more
@@ -145,10 +154,79 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
-	shellsCollectedMessage;
+	shellsCollectedMessage, titlescreen, testText, Titlemessage;
 
+	
+ // Attempted title state 
+/*	
+function title() {
+	//Create the `gameTitle` scene
+  gameTitleScene = new Container();
+  stage.addChild(gameTitleScene);
+
+	Titlemessage = new Text(
+    "",
+    {font: "64px Arial", fill: "white"}
+  );
+  Titlemessage.x = stage.width / 2 - 100;
+  Titlemessage.y = stage.height / 2 - 42;
+  gameTitleScene.addChild(Titlemessage);
+
+	
+ 
+  //Make the `gameTitle` scene invisible when the game first starts
+  gameTitleScene.visible = true;
+
+  
+  //Create the text sprite and add it to the `gameOver` scene
+  
+    
+  gameTitleScene.visible = true;
+  //gameScene.visible = false;
+  //gameOverScene.visible = false;
+	
+
+	testText = new Text (
+    "Hello World?",
+    {font: "30px Futura", fill: "green"}
+  );
+  testText.x = 30;
+  testText.y = 30;
+  gameTitleScene.addChild(testText);
+	
+	
+	//for (var begin =0; begin <= 1; begin++) {
+  titlescreen = new Sprite(resources[TITLE_SCREEN].texture);
+  titlescreen.width = PLAY_ARENA_WIDTH;
+  titlescreen.height = PLAY_ARENA_HEIGHT;
+  titlescreen.x = PLAY_AREA_ORIGIN_X;
+  titlescreen.y = PLAY_AREA_ORIGIN_Y;
+  gameTitleScene.addChild(titlescreen);
+  //};
+	
+}
+*/
+	
 function setup() {
 
+	//music and sound
+	
+  sounds.load([
+	//"sounds/shoot.wav", 
+	"sounds/music.wav",
+	//"sounds/bounce.mp3",
+	//"sounds/Scavenger.mp3",
+	"sounds/laserShot.wav",
+	"sounds/SurfaceCreatureDie.wav"
+  ]);
+
+  var laserShotSound = sounds["sounds/laserShot.wav"],
+    SurfaceCreatureDie = sounds["SurfaceCreatureDie"],
+    music = sounds["sounds/music.wav"];
+	//scavenger = sounds["sounds/Scavenger.mp3"];
+    //bounce = sounds["sounds/bounce.mp3"];
+	
+	
   //initially zero shells have been collected
   shellsCollected = 0;
 
@@ -157,7 +235,7 @@ function setup() {
 
   //walk tick animation index
   walkTick = 0;
-
+	
   //game play tick
   playTick = 0;
 
@@ -256,8 +334,8 @@ function setup() {
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfVeg; i++) {
 
-    //Make a monster
-    var veg = new Sprite(resources[VEG_ICON_UI_IMG].texture);
+    //Make a veg
+    var veg = new Sprite(resources[VEG_PICKUP_IMG].texture);
     //veg.width = ;
     //veg.height = ;
 
@@ -374,6 +452,8 @@ function setup() {
 
   }
 
+
+  
   //Create the health bar
   //Set Initial ep
   maxEp = 100
@@ -447,6 +527,7 @@ function setup() {
   monstersKilledMessage.y = 25;
   gameScene.addChild(monstersKilledMessage);
   
+  
   //UI displaying number of veg collected
   vegCounter = new Text (
     vegCollect,
@@ -466,14 +547,23 @@ function setup() {
       a = keyboard(65),
       s = keyboard(83),
       d = keyboard(68);
+	  q = keyboard(81); 
+	  e = keyboard(69);
 
+  q.press = function() {
+	  music.play();
+  }
+  
+  e.press = function() {
+	  music.pause();
+  }
   
   //when space is pressed fire the lazer!
   shoot.press = function() {
     //increment the number of laser shots fired each time the space bar is pressed
     laserShotsFired += 1;
 	ep = ep - 10
-
+	laserShotSound.play();
     //update the lasers fired message
     shotsFiredMessage.text = "Laser Shots: " + laserShotsFired
 
@@ -606,10 +696,13 @@ function setup() {
 
   //Set the game state
   state = play;
-
+  
   //Start the game loop
   gameLoop();
+	
 }
+
+
 
 //change the image of the explorer to the new image
 function updateExplorer(newImg) {
@@ -637,13 +730,15 @@ function gameLoop(){
 
   //Update the current game state
   state();
+  
 
   //Render the stage
   renderer.render(stage);
 }
 
 function play() {
-
+	
+	
   //increment the number of ticks that the game has run for
   playTick += 1;
 
@@ -679,6 +774,8 @@ function play() {
         }
 
     }
+	
+	
 
   }
 
@@ -705,6 +802,7 @@ function play() {
         //reset monster's velocity to zero
         var monsterVx = 0;
         var monsterVy = 0;
+		
 
         //if the monster is to the left of the player move the monster right
         if(monster.x < explorer.x) {
@@ -847,11 +945,14 @@ function play() {
     if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
       monster.vy *= -SURFACE_MONSTER_SPEED;
     }
-
+	
+	
     //Test for a collision. If any of the enemies are touching
     //the explorer, set `explorerHit` to `true`
     if(hitTestRectangle(explorer, monster)) {
       explorerHit = true;
+	  //bounce.play();
+	  
     }
   });
 
@@ -885,6 +986,8 @@ function play() {
 
           //hide the laser image
           laser.visible = false;
+		  
+		  //SurfaceCreatureDie.play();
 
           //find the index of the monster we just killed so we can remove it
           var deadMonsterIndex = monsters.indexOf(monster);
@@ -1035,16 +1138,19 @@ function play() {
   //Does the explorer have enough health? If the width of the `innerBar`
   //is less than zero, end the game and display "You lost!"
   if (healthBar.outer.width < 0) {
-    state = end;
+   	state = end;
     message.text = "You lost!";
   }
-
+  
+ 
   //If the explorer has brought the treasure to the exit,
   //end the game and display "You won!"
   if (hitTestRectangle(treasure, door)) {
     state = end;
     message.text = "You won!";
   }
+  
+  
 }
 
 function end() {
@@ -1192,3 +1298,5 @@ function keyboard(keyCode) {
   );
   return key;
 }
+
+  
