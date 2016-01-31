@@ -82,6 +82,14 @@ var PLAYER_WALK_SPEED = 3;
 //larger value causes the image to update less frequently
 var PLAYER_WALK_FREQUENCY = 8;
 
+//if the game is running or paused
+var running = true;
+
+//if the prologue is running
+var prologueRunning = true;
+var prologueCurrentScreen = 0;
+var PROLOGUE_SCREENS = ["images/space/Prologue1.jpg","images/space/Prologue2.jpg","images/space/Prologue3.jpg"];
+
 //fonts 
 var font1 = "fonts/CHECKBK0.TTF"
 var font2 = "fonts/TABU TRIAL____.otf"
@@ -110,6 +118,11 @@ SURFACE_MONSTER_IMGS.forEach(function(img) {
 CAVE_MONSTER_IMGS.forEach(function(img) {
     loader.add(img);
 })
+
+//load the prologue screens
+PROLOGUE_SCREENS.forEach(function(img) {
+    loader.add(img);
+});
 
 //load all the player images for player animations
 PLAYER_BACK_IMGS.forEach(function(img) {
@@ -145,7 +158,7 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
-	shellsCollectedMessage;
+	shellsCollectedMessage, prologueScene, pauseScene, prologueScreen;
 
 function setup() {
 
@@ -446,6 +459,21 @@ function setup() {
   monstersKilledMessage.x = 650;
   monstersKilledMessage.y = 25;
   gameScene.addChild(monstersKilledMessage);
+
+  //create the prologue scene
+  pauseScene = new Container();
+  stage.addChild(pauseScene);
+
+  //make the prologue scene visible on start
+  pauseScene.visible = false;
+
+  var pauseMsg = new Text(
+    "Game Paused!",
+    {font: "64px Arial", fill: "white"}
+  );
+  pauseMsg.x = stage.width / 2 - 100;
+  pauseMsg.y = stage.height / 2 - 42;
+  pauseScene.addChild(pauseMsg);
   
   //UI displaying number of veg collected
   vegCounter = new Text (
@@ -465,7 +493,48 @@ function setup() {
       w = keyboard(87),
       a = keyboard(65),
       s = keyboard(83),
-      d = keyboard(68);
+      d = keyboard(68),
+      enter = keyboard(13);
+
+  //toggle pause
+  enter.press = function() {
+
+    //check if the prologue is currently running
+    if(prologueRunning) {
+
+        //increment the prologue screen to the next
+        prologueCurrentScreen += 1;
+
+        //if there are more prologue screens load the next screen otherwise hide the prologue screen and start the game
+        if(prologueCurrentScreen < PROLOGUE_SCREENS.length) {
+            prologueScreen = new Sprite(resources[PROLOGUE_SCREENS[prologueCurrentScreen]].texture);
+            prologueScreen.width = PLAY_ARENA_WIDTH;
+            prologueScreen.height = PLAY_ARENA_HEIGHT;
+            prologueScreen.x = PLAY_AREA_ORIGIN_X;
+            prologueScreen.y = PLAY_AREA_ORIGIN_Y;
+            prologueScene.addChild(prologueScreen);
+        } else {
+            //make the prologue scene invisible
+            prologueScene.visible = false;
+            gameScene.visible = true;
+            running = true;
+            prologueRunning = false;
+        }
+
+    } else {
+
+        //if the game is running pause it if the game is not running un-pause it
+        if(running) {
+            running = false;
+            pauseScene.visible = true;
+        } else {
+            running = true;
+            pauseScene.visible = false;
+        }
+
+    }
+
+  }
 
   
   //when space is pressed fire the lazer!
@@ -609,6 +678,8 @@ function setup() {
 
   //Start the game loop
   gameLoop();
+
+  prologue();
 }
 
 //change the image of the explorer to the new image
@@ -644,412 +715,436 @@ function gameLoop(){
 
 function play() {
 
-  //increment the number of ticks that the game has run for
-  playTick += 1;
+  //if the game is running do all of the things otherwise do nothing
+  if(running) {
 
-  //use the explorer's velocity to make it move
-  explorer.x += explorer.vx;
-  explorer.y += explorer.vy;
+    //increment the number of ticks that the game has run for
+    playTick += 1;
 
-  //check if this play tick we should update the player's image
-  if(playTick % PLAYER_WALK_FREQUENCY == 0) {
-    //increment the walk tick so we can show a new image
-    walkTick += 1;
+    //use the explorer's velocity to make it move
+    explorer.x += explorer.vx;
+    explorer.y += explorer.vy;
 
-    //reset the walk tick if we reach the end of the walk images available
-    if(walkTick >= PLAYER_BACK_IMGS.length) {
-        walkTick = 0;
-    }
+    //check if this play tick we should update the player's image
+    if(playTick % PLAYER_WALK_FREQUENCY == 0) {
+      //increment the walk tick so we can show a new image
+      walkTick += 1;
 
-    //if the player is moving (holding down one of the movement keys) update the image according to which direction
-    //the player is moving
-    if (playerMoving) {
+      //reset the walk tick if we reach the end of the walk images available
+      if(walkTick >= PLAYER_BACK_IMGS.length) {
+          walkTick = 0;
+      }
 
-        if(lastMove == "up") {
-            updateExplorer(PLAYER_BACK_IMGS[walkTick]);
-        }
-        if(lastMove == "down") {
-            updateExplorer(PLAYER_FRONT_IMGS[walkTick]);
-        }
-        if(lastMove == "left") {
-            updateExplorer(PLAYER_LEFT_IMGS[walkTick]);
-        }
-        if(lastMove == "right") {
-            updateExplorer(PLAYER_RIGHT_IMGS[walkTick]);
-        }
+      //if the player is moving (holding down one of the movement keys) update the image according to which direction
+      //the player is moving
+      if (playerMoving) {
 
-    }
-
-  }
-
-  //Contain the explorer inside the area of the dungeon
-  contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
-  //contain(explorer, stage);
-
-  //Set `explorerHit` to `false` before checking for a collision
-  var explorerHit = false;
-
-  caveMonsters.forEach(function(monster) {
-
-    //Move the monster according to their current velocity
-    monster.y += monster.vy;
-    monster.x += monster.vx;
-
-    var randomIntMonsterImgIndex = randomInt(0,CAVE_MONSTER_IMG_UPDATE_FREQ);
-    if(randomIntMonsterImgIndex < CAVE_MONSTER_IMGS.length) {
-
-        //get this monster's current values so the predecessor monster can inherit these values
-        var monsterX = monster.x;
-        var monsterY = monster.y;
-
-        //reset monster's velocity to zero
-        var monsterVx = 0;
-        var monsterVy = 0;
-
-        //if the monster is to the left of the player move the monster right
-        if(monster.x < explorer.x) {
-            monsterVx = CAVE_MONSTER_SPEED;
-        }
-        //if the monster is to the right of the player move the monster left
-        if(monster.x > explorer.x) {
-            monsterVx = -CAVE_MONSTER_SPEED;
-        }
-        //if the monster is above the player move the monster down
-        if(monster.y < explorer.y) {
-            monsterVy = CAVE_MONSTER_SPEED;
-        }
-        //if the monster is below the player move the monster up
-        if(monster.y > explorer.y) {
-            monsterVy = -CAVE_MONSTER_SPEED;
-        }
-
-        //make the old monster invisible
-        monster.visible = false;
-
-        //remove the old monster so we can replace him with a new sprite and new image
-        var oldMonsterIndex = caveMonsters.indexOf(monster);
-        caveMonsters.splice(oldMonsterIndex, 1);
-
-        //Make a new monster using the random monster image
-        var newMonster = new Sprite(resources[CAVE_MONSTER_IMGS[randomIntMonsterImgIndex]].texture);
-        newMonster.width = CAVE_MONSTER_WIDTH;
-        newMonster.height = CAVE_MONSTER_HEIGHT;
-
-        //Set the monster's position
-        newMonster.x = monsterX;
-        newMonster.y = monsterY;
-
-        //Set the monster's vertical velocity. `direction` will be either `1` or
-        //`-1`. `1` means the enemy will move down and `-1` means the monster will
-        //move up. Multiplying `direction` by `speed` determines the monster's
-        //vertical direction
-        newMonster.vy = monsterVy; //speed * direction;
-        newMonster.vx = monsterVx;
-
-        //Push the monster into the `monsters` array
-        caveMonsters.push(newMonster);
-
-        //Add the monster to the `gameScene`
-        gameScene.addChild(newMonster);
-
-    }
-
-    //Check the monster's screen boundaries
-    var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
-
-    //If the monster hits the top or bottom of the stage, reverse
-    //its direction
-    if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
-      monster.vy *= -CAVE_MONSTER_SPEED;
-    }
-
-    //Test for a collision. If any of the enemies are touching
-    //the explorer, set `explorerHit` to `true`
-    if(hitTestRectangle(explorer, monster)) {
-      explorerHit = true;
-    }
-
-  });
-
-  //Loop through all the sprites in the `enemies` array
-  monsters.forEach(function(monster) {
-
-    //Move the monster according to their current velocity
-    monster.y += monster.vy;
-    monster.x += monster.vx;
-
-    //change the monster image randomly based on the frequency set - a higher frequency makes the monster update less often
-    var randomIntMonsterImgIndex = randomInt(0,SURFACE_MONSTER_IMG_UPDATE_FREQ);
-    if(randomIntMonsterImgIndex < SURFACE_MONSTER_IMGS.length) {
-
-        //get this monster's current values so the predecessor monster can inherit these values
-        var monsterX = monster.x;
-        var monsterY = monster.y;
-
-        //reset monster's velocity to zero
-        var monsterVx = 0;
-        var monsterVy = 0;
-
-        //if the monster is to the left of the player move the monster right
-        if(monster.x < explorer.x) {
-            monsterVx = SURFACE_MONSTER_SPEED;
-        }
-        //if the monster is to the right of the player move the monster left
-        if(monster.x > explorer.x) {
-            monsterVx = -SURFACE_MONSTER_SPEED;
-        }
-        //if the monster is above the player move the monster down
-        if(monster.y < explorer.y) {
-            monsterVy = SURFACE_MONSTER_SPEED;
-        }
-        //if the monster is below the player move the monster up
-        if(monster.y > explorer.y) {
-            monsterVy = -SURFACE_MONSTER_SPEED;
-        }
-
-        //make the old monster invisible
-        monster.visible = false;
-
-        //remove the old monster so we can replace him with a new sprite and new image
-        var oldMonsterIndex = monsters.indexOf(monster);
-        monsters.splice(oldMonsterIndex, 1);
-
-        //Make a new monster using the random monster image
-        var newMonster = new Sprite(resources[SURFACE_MONSTER_IMGS[randomIntMonsterImgIndex]].texture);
-        newMonster.width = SURFACE_MONSTER_WIDTH;
-        newMonster.height = SURFACE_MONSTER_HEIGHT;
-
-        //Set the monster's position
-        newMonster.x = monsterX;
-        newMonster.y = monsterY;
-
-        //Set the monster's vertical velocity. `direction` will be either `1` or
-        //`-1`. `1` means the enemy will move down and `-1` means the monster will
-        //move up. Multiplying `direction` by `speed` determines the monster's
-        //vertical direction
-        newMonster.vy = monsterVy; //speed * direction;
-        newMonster.vx = monsterVx;
-
-        //Push the monster into the `monsters` array
-        monsters.push(newMonster);
-
-        //Add the monster to the `gameScene`
-        gameScene.addChild(newMonster);
-
-    }
-
-    //Check the monster's screen boundaries
-    var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
-
-
-    //If the monster hits the top or bottom of the stage, reverse
-    //its direction
-    if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
-      monster.vy *= -SURFACE_MONSTER_SPEED;
-    }
-
-    //Test for a collision. If any of the enemies are touching
-    //the explorer, set `explorerHit` to `true`
-    if(hitTestRectangle(explorer, monster)) {
-      explorerHit = true;
-    }
-  });
-
-  //iterate through each laser shot and update its position or hide it if it leaves the board
-  laserShots.forEach(function(laser) {
-    //update the position of each laser shot based on its velocity
-    laser.x += laser.vx;
-    laser.y += laser.vy;
-
-    //iterate through all the monsters to look for laser hits
-    monsters.forEach(function(monster) {
-
-      //check if the laser hit the monster
-      if(hitTestRectangle(laser, monster)) {
-
-          //create a shell where the monster had been
-          dropShell(monster.x, monster.y);
-
-          //increment the number of monsters killed
-          monstersKilled += 1;
-
-          //update the monsters killed message
-          monstersKilledMessage.text = "Monsters killed: " + monstersKilled;
-
-          //stop the monster
-          monster.vy = 0;
-          monster.vx = 0;
-
-          //remove the monster image
-          monster.visible = false;
-
-          //hide the laser image
-          laser.visible = false;
-
-          //find the index of the monster we just killed so we can remove it
-          var deadMonsterIndex = monsters.indexOf(monster);
-          monsters.splice(deadMonsterIndex, 1);
-
-          //find the index of the laser that hit the monster so we can remove the laser
-          var expendedLaserIndex = laserShots.indexOf(laser);
-          laserShots.splice(expendedLaserIndex, 1);
+          if(lastMove == "up") {
+              updateExplorer(PLAYER_BACK_IMGS[walkTick]);
+          }
+          if(lastMove == "down") {
+              updateExplorer(PLAYER_FRONT_IMGS[walkTick]);
+          }
+          if(lastMove == "left") {
+              updateExplorer(PLAYER_LEFT_IMGS[walkTick]);
+          }
+          if(lastMove == "right") {
+              updateExplorer(PLAYER_RIGHT_IMGS[walkTick]);
+          }
 
       }
 
-    });
+    }
 
-    //iterate through all the cave monsters to look for laser hits
+    //Contain the explorer inside the area of the dungeon
+    contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
+    //contain(explorer, stage);
+
+    //Set `explorerHit` to `false` before checking for a collision
+    var explorerHit = false;
+
     caveMonsters.forEach(function(monster) {
 
-      //check if the laser hit the monster
-      if(hitTestRectangle(laser, monster)) {
+      //Move the monster according to their current velocity
+      monster.y += monster.vy;
+      monster.x += monster.vx;
 
-          //create a shell where the monster had been
-          dropShell(monster.x, monster.y);
+      var randomIntMonsterImgIndex = randomInt(0,CAVE_MONSTER_IMG_UPDATE_FREQ);
+      if(randomIntMonsterImgIndex < CAVE_MONSTER_IMGS.length) {
 
-          //increment the number of monsters killed
-          monstersKilled += 1;
+          //get this monster's current values so the predecessor monster can inherit these values
+          var monsterX = monster.x;
+          var monsterY = monster.y;
 
-          //update the monsters killed message
-          monstersKilledMessage.text = "Monsters killed: " + monstersKilled;
+          //reset monster's velocity to zero
+          var monsterVx = 0;
+          var monsterVy = 0;
 
-          //stop the monster
-          monster.vy = 0;
-          monster.vx = 0;
+          //if the monster is to the left of the player move the monster right
+          if(monster.x < explorer.x) {
+              monsterVx = CAVE_MONSTER_SPEED;
+          }
+          //if the monster is to the right of the player move the monster left
+          if(monster.x > explorer.x) {
+              monsterVx = -CAVE_MONSTER_SPEED;
+          }
+          //if the monster is above the player move the monster down
+          if(monster.y < explorer.y) {
+              monsterVy = CAVE_MONSTER_SPEED;
+          }
+          //if the monster is below the player move the monster up
+          if(monster.y > explorer.y) {
+              monsterVy = -CAVE_MONSTER_SPEED;
+          }
 
-          //remove the monster image
+          //make the old monster invisible
           monster.visible = false;
 
-          //hide the laser image
-          laser.visible = false;
+          //remove the old monster so we can replace him with a new sprite and new image
+          var oldMonsterIndex = caveMonsters.indexOf(monster);
+          caveMonsters.splice(oldMonsterIndex, 1);
 
-          //find the index of the monster we just killed so we can remove it
-          var deadMonsterIndex = caveMonsters.indexOf(monster);
-          caveMonsters.splice(deadMonsterIndex, 1);
+          //Make a new monster using the random monster image
+          var newMonster = new Sprite(resources[CAVE_MONSTER_IMGS[randomIntMonsterImgIndex]].texture);
+          newMonster.width = CAVE_MONSTER_WIDTH;
+          newMonster.height = CAVE_MONSTER_HEIGHT;
 
-          //find the index of the laser that hit the monster so we can remove the laser
-          var expendedLaserIndex = laserShots.indexOf(laser);
-          laserShots.splice(expendedLaserIndex, 1);
+          //Set the monster's position
+          newMonster.x = monsterX;
+          newMonster.y = monsterY;
+
+          //Set the monster's vertical velocity. `direction` will be either `1` or
+          //`-1`. `1` means the enemy will move down and `-1` means the monster will
+          //move up. Multiplying `direction` by `speed` determines the monster's
+          //vertical direction
+          newMonster.vy = monsterVy; //speed * direction;
+          newMonster.vx = monsterVx;
+
+          //Push the monster into the `monsters` array
+          caveMonsters.push(newMonster);
+
+          //Add the monster to the `gameScene`
+          gameScene.addChild(newMonster);
+
+      }
+
+      //Check the monster's screen boundaries
+      var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
+
+      //If the monster hits the top or bottom of the stage, reverse
+      //its direction
+      if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
+        monster.vy *= -CAVE_MONSTER_SPEED;
+      }
+
+      //Test for a collision. If any of the enemies are touching
+      //the explorer, set `explorerHit` to `true`
+      if(hitTestRectangle(explorer, monster)) {
+        explorerHit = true;
+      }
+
+    });
+
+    //Loop through all the sprites in the `enemies` array
+    monsters.forEach(function(monster) {
+
+      //Move the monster according to their current velocity
+      monster.y += monster.vy;
+      monster.x += monster.vx;
+
+      //change the monster image randomly based on the frequency set - a higher frequency makes the monster update less often
+      var randomIntMonsterImgIndex = randomInt(0,SURFACE_MONSTER_IMG_UPDATE_FREQ);
+      if(randomIntMonsterImgIndex < SURFACE_MONSTER_IMGS.length) {
+
+          //get this monster's current values so the predecessor monster can inherit these values
+          var monsterX = monster.x;
+          var monsterY = monster.y;
+
+          //reset monster's velocity to zero
+          var monsterVx = 0;
+          var monsterVy = 0;
+
+          //if the monster is to the left of the player move the monster right
+          if(monster.x < explorer.x) {
+              monsterVx = SURFACE_MONSTER_SPEED;
+          }
+          //if the monster is to the right of the player move the monster left
+          if(monster.x > explorer.x) {
+              monsterVx = -SURFACE_MONSTER_SPEED;
+          }
+          //if the monster is above the player move the monster down
+          if(monster.y < explorer.y) {
+              monsterVy = SURFACE_MONSTER_SPEED;
+          }
+          //if the monster is below the player move the monster up
+          if(monster.y > explorer.y) {
+              monsterVy = -SURFACE_MONSTER_SPEED;
+          }
+
+          //make the old monster invisible
+          monster.visible = false;
+
+          //remove the old monster so we can replace him with a new sprite and new image
+          var oldMonsterIndex = monsters.indexOf(monster);
+          monsters.splice(oldMonsterIndex, 1);
+
+          //Make a new monster using the random monster image
+          var newMonster = new Sprite(resources[SURFACE_MONSTER_IMGS[randomIntMonsterImgIndex]].texture);
+          newMonster.width = SURFACE_MONSTER_WIDTH;
+          newMonster.height = SURFACE_MONSTER_HEIGHT;
+
+          //Set the monster's position
+          newMonster.x = monsterX;
+          newMonster.y = monsterY;
+
+          //Set the monster's vertical velocity. `direction` will be either `1` or
+          //`-1`. `1` means the enemy will move down and `-1` means the monster will
+          //move up. Multiplying `direction` by `speed` determines the monster's
+          //vertical direction
+          newMonster.vy = monsterVy; //speed * direction;
+          newMonster.vx = monsterVx;
+
+          //Push the monster into the `monsters` array
+          monsters.push(newMonster);
+
+          //Add the monster to the `gameScene`
+          gameScene.addChild(newMonster);
+
+      }
+
+      //Check the monster's screen boundaries
+      var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
+
+
+      //If the monster hits the top or bottom of the stage, reverse
+      //its direction
+      if (monsterHitsWall === "top" || monsterHitsWall === "bottom") {
+        monster.vy *= -SURFACE_MONSTER_SPEED;
+      }
+
+      //Test for a collision. If any of the enemies are touching
+      //the explorer, set `explorerHit` to `true`
+      if(hitTestRectangle(explorer, monster)) {
+        explorerHit = true;
+      }
+    });
+
+    //iterate through each laser shot and update its position or hide it if it leaves the board
+    laserShots.forEach(function(laser) {
+      //update the position of each laser shot based on its velocity
+      laser.x += laser.vx;
+      laser.y += laser.vy;
+
+      //iterate through all the monsters to look for laser hits
+      monsters.forEach(function(monster) {
+
+        //check if the laser hit the monster
+        if(hitTestRectangle(laser, monster)) {
+
+            //create a shell where the monster had been
+            dropShell(monster.x, monster.y);
+
+            //increment the number of monsters killed
+            monstersKilled += 1;
+
+            //update the monsters killed message
+            monstersKilledMessage.text = "Monsters killed: " + monstersKilled;
+
+            //stop the monster
+            monster.vy = 0;
+            monster.vx = 0;
+
+            //remove the monster image
+            monster.visible = false;
+
+            //hide the laser image
+            laser.visible = false;
+
+            //find the index of the monster we just killed so we can remove it
+            var deadMonsterIndex = monsters.indexOf(monster);
+            monsters.splice(deadMonsterIndex, 1);
+
+            //find the index of the laser that hit the monster so we can remove the laser
+            var expendedLaserIndex = laserShots.indexOf(laser);
+            laserShots.splice(expendedLaserIndex, 1);
+
+        }
+
+      });
+
+      //iterate through all the cave monsters to look for laser hits
+      caveMonsters.forEach(function(monster) {
+
+        //check if the laser hit the monster
+        if(hitTestRectangle(laser, monster)) {
+
+            //create a shell where the monster had been
+            dropShell(monster.x, monster.y);
+
+            //increment the number of monsters killed
+            monstersKilled += 1;
+
+            //update the monsters killed message
+            monstersKilledMessage.text = "Monsters killed: " + monstersKilled;
+
+            //stop the monster
+            monster.vy = 0;
+            monster.vx = 0;
+
+            //remove the monster image
+            monster.visible = false;
+
+            //hide the laser image
+            laser.visible = false;
+
+            //find the index of the monster we just killed so we can remove it
+            var deadMonsterIndex = caveMonsters.indexOf(monster);
+            caveMonsters.splice(deadMonsterIndex, 1);
+
+            //find the index of the laser that hit the monster so we can remove the laser
+            var expendedLaserIndex = laserShots.indexOf(laser);
+            laserShots.splice(expendedLaserIndex, 1);
+
+        }
+
+      });
+
+      //check if the laser has left the play area on the x axis
+      if(laser.x > (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) || laser.x < PLAY_AREA_ORIGIN_X) {
+        laser.visible = false;
+        //find the index of the laser that reached the game boundary so we can remove it from play
+        var missedLaserIndex = laserShots.indexOf(laser);
+        laserShots.splice(missedLaserIndex, 1);
+      }
+      //check if the laser has left the play area on the y axis
+      if(laser.y > (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y) || laser.y < PLAY_AREA_ORIGIN_Y) {
+        laser.visible = false;
+        //find the index of the laser that reached the game boundary so we can remove it from play
+        var missedLaserIndex = laserShots.indexOf(laser);
+        laserShots.splice(missedLaserIndex, 1);
+      }
+    });
+
+    //energy system
+
+    healthBar.outer.width = (ep * 316 / (healthBar.inner.width))
+
+    //Slowly looses energy
+    epUseSpeed = .1
+
+    if (1 > 0) {
+  	ep -= epUseSpeed;
+
+    }
+
+    //Ship gives player energy
+    if (hitTestRectangle(explorer,ship)) {
+  	ep = ep + rechargeRate;
+    }
+
+    //Max health
+    if (ep > maxEp){
+  	ep = maxEp
+    }
+
+    vegUncollect.forEach(function (veg) {
+
+  	  //Vetation collectable
+  	  if (hitTestRectangle(explorer, veg)) {
+  		  vegCollect = vegCollect + 1;
+  		  vegCounter.text = vegCollect;
+  		  veg.visible = false;
+
+  		  var vegCollectIndex = vegUncollect.indexOf(veg);
+  			  vegUncollect.splice(vegCollectIndex, 1);
+  	  }
+      });
+
+    //iterate through all the shells to see if the player picks them up
+    shells.forEach(function (shell) {
+
+      //check if the player picked up the shell
+      if(hitTestRectangle(explorer, shell)) {
+
+          //incrememnt the counter for shells collected
+          shellsCollected += 1;
+
+          //update the shells collected message
+          shellsCollectedMessage.text = shellsCollected;
+
+          //hide the shell since its been picked up
+          shell.visible = false;
+
+          //remove the shell from the shells array
+          var shellCollectedIndex = shells.indexOf(shell);
+          shells.splice(shellCollectedIndex,1);
 
       }
 
     });
 
-    //check if the laser has left the play area on the x axis
-    if(laser.x > (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) || laser.x < PLAY_AREA_ORIGIN_X) {
-      laser.visible = false;
-      //find the index of the laser that reached the game boundary so we can remove it from play
-      var missedLaserIndex = laserShots.indexOf(laser);
-      laserShots.splice(missedLaserIndex, 1);
-    }
-    //check if the laser has left the play area on the y axis
-    if(laser.y > (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y) || laser.y < PLAY_AREA_ORIGIN_Y) {
-      laser.visible = false;
-      //find the index of the laser that reached the game boundary so we can remove it from play
-      var missedLaserIndex = laserShots.indexOf(laser);
-      laserShots.splice(missedLaserIndex, 1);
-    }
-  });
-	
-  //energy system 
-  
-  healthBar.outer.width = (ep * 316 / (healthBar.inner.width))
-  
-  //Slowly looses energy
-  epUseSpeed = .1
-  
-  if (1 > 0) {
-	ep -= epUseSpeed;
-	
-  } 
-  
-  //Ship gives player energy
-  if (hitTestRectangle(explorer,ship)) {
-	ep = ep + rechargeRate;  
-  }
-  
-  //Max health
-  if (ep > maxEp){
-	ep = maxEp
-  }
-  
-  vegUncollect.forEach(function (veg) {
-  
-	  //Vetation collectable
-	  if (hitTestRectangle(explorer, veg)) {
-		  vegCollect = vegCollect + 1;
-		  vegCounter.text = vegCollect;
-		  veg.visible = false;
-		  
-		  var vegCollectIndex = vegUncollect.indexOf(veg);
-			  vegUncollect.splice(vegCollectIndex, 1);
-	  }
-    });
+    //If the explorer is hit...
+    if(explorerHit) {
 
-  //iterate through all the shells to see if the player picks them up
-  shells.forEach(function (shell) {
+      //Make the explorer semi-transparent
+      explorer.alpha = .5;
 
-    //check if the player picked up the shell
-    if(hitTestRectangle(explorer, shell)) {
+      //Reduce the width of the health bar's inner rectangle by 1 pixel
+      ep -= damageRate;
 
-        //incrememnt the counter for shells collected
-        shellsCollected += 1;
+    } else {
 
-        //update the shells collected message
-        shellsCollectedMessage.text = shellsCollected;
-
-        //hide the shell since its been picked up
-        shell.visible = false;
-
-        //remove the shell from the shells array
-        var shellCollectedIndex = shells.indexOf(shell);
-        shells.splice(shellCollectedIndex,1);
-
+      //Make the explorer fully opaque (non-transparent) if it hasn't been hit
+      explorer.alpha = 1;
     }
 
-  });
-  
-  //If the explorer is hit...
-  if(explorerHit) {
+    //Check for a collision between the explorer and the treasure
+    if (hitTestRectangle(explorer, treasure)) {
 
-    //Make the explorer semi-transparent
-    explorer.alpha = .5;
+      //If the treasure is touching the explorer, center it over the explorer
+      treasure.x = explorer.x + 8;
+      treasure.y = explorer.y + 8;
+    }
 
-    //Reduce the width of the health bar's inner rectangle by 1 pixel
-    ep -= damageRate;
+    //Does the explorer have enough health? If the width of the `innerBar`
+    //is less than zero, end the game and display "You lost!"
+    if (healthBar.outer.width < 0) {
+      state = end;
+      message.text = "You lost!";
+    }
 
-  } else {
+    //If the explorer has brought the treasure to the exit,
+    //end the game and display "You won!"
+    if (hitTestRectangle(treasure, door)) {
+      state = end;
+      message.text = "You won!";
+    }
 
-    //Make the explorer fully opaque (non-transparent) if it hasn't been hit
-    explorer.alpha = 1;
   }
 
-  //Check for a collision between the explorer and the treasure
-  if (hitTestRectangle(explorer, treasure)) {
-
-    //If the treasure is touching the explorer, center it over the explorer
-    treasure.x = explorer.x + 8;
-    treasure.y = explorer.y + 8;
-  }
-
-  //Does the explorer have enough health? If the width of the `innerBar`
-  //is less than zero, end the game and display "You lost!"
-  if (healthBar.outer.width < 0) {
-    state = end;
-    message.text = "You lost!";
-  }
-
-  //If the explorer has brought the treasure to the exit,
-  //end the game and display "You won!"
-  if (hitTestRectangle(treasure, door)) {
-    state = end;
-    message.text = "You won!";
-  }
 }
 
 function end() {
   gameScene.visible = false;
   gameOverScene.visible = true;
+}
+
+//load the initial prologue scene
+function prologue() {
+    gameScene.visible = false;
+    running = false;
+
+    //create the prologue scene
+    prologueScene = new Container();
+    stage.addChild(prologueScene);
+
+    prologueScreen = new Sprite(resources[PROLOGUE_SCREENS[prologueCurrentScreen]].texture);
+    prologueScreen.width = PLAY_ARENA_WIDTH;
+    prologueScreen.height = PLAY_ARENA_HEIGHT;
+    prologueScreen.x = PLAY_AREA_ORIGIN_X;
+    prologueScreen.y = PLAY_AREA_ORIGIN_Y;
+    prologueScene.addChild(prologueScreen);
+
 }
 
 /* Helper functions */
