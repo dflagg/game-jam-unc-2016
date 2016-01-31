@@ -99,7 +99,8 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     door, healthBar, message, gameScene, gameOverScene, enemies, id,
     ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
-	epUseSpeed, ep, epBarLength, maxEp;
+	epUseSpeed, ep, epBarLength, maxEp, veg, vegUncollect, vegCollect, 
+	vegCounter;
 
 function setup() {
 
@@ -149,7 +150,7 @@ function setup() {
   crystalUi.height = 35;
   gameScene.addChild(crystalUi);
 
-  //food icon
+  //veg icon
   vegUi = new Sprite(resources[VEG_ICON_UI_IMG].texture)
   vegUi.y = VEG_UI_Y;
   vegUi.x = VEG_UI_X;
@@ -187,7 +188,42 @@ function setup() {
   treasure.x = gameScene.width - treasure.width - 48;
   treasure.y = gameScene.height / 2 - treasure.height / 2;
   gameScene.addChild(treasure);
+  
+ 
+  //array to contain veg on map
+  vegUncollect = [];
+  vegCollect = 0;
+  var numberOfVeg = 5;
+  
+  
+  
+  //Make as many monster as there are `numberOfMonsters`
+  for (var i = 0; i < numberOfVeg; i++) {
 
+    //Make a monster
+    var veg = new Sprite(resources[VEG_ICON_UI_IMG].texture);
+    //veg.width = ;
+    //veg.height = ;
+
+    //Space each monster horizontally according to the `spacing` value.
+    //`xOffset` determines the point from the left of the screen
+    //at which the first monster should be added
+    var vegX = randomInt(100, stage.height - 100);
+
+    //Give the monster a random y position
+    var vegY = randomInt(100, stage.height - 100);
+
+    //Set the monster's position
+    veg.x = vegX;
+    veg.y = vegY;
+
+    //Push the monster into the `monsters` array
+    vegUncollect.push(veg);
+
+    //Add the monster to the `gameScene`
+    gameScene.addChild(veg);
+  }
+  
   //Make the monsters
   var numberOfMonsters = 6,
       spacing = 48,
@@ -200,6 +236,7 @@ function setup() {
 
   //array to contain all laser shots in the arena
   laserShots = [];
+  
 
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfMonsters; i++) {
@@ -236,18 +273,20 @@ function setup() {
     //Add the monster to the `gameScene`
     gameScene.addChild(monster);
 	
-	//Set Initial ep
-	maxEp = 100
-	ep = 100
   }
-
-  //Create the health bar
+  //Set Initial ep
+  maxEp = 100
+  ep = 100
+  rechargeRate = 0.5
+  damageRate = 2
+  
+  //Create the energy bar
   healthBar = new Container();
   healthBar.position.set(71, 20)
   //healthBar.position.set(stage.width - 70, 6)
   gameScene.addChild(healthBar);
 
-  //Create the black background rectangle
+  //Create the red background rectangle
   var innerBar = new Graphics();
   innerBar.beginFill(0xFF3300);
   innerBar.drawRect(0, 0, 178, 8);
@@ -276,8 +315,8 @@ function setup() {
     "The End!",
     {font: "64px Arial", fill: "white"}
   );
-  message.x = 120;
-  message.y = stage.height / 2 - 32;
+  message.x = stage.width / 2 - 100;
+  message.y = stage.height / 2 - 42;
   gameOverScene.addChild(message);
 
   //the message displaying the number of laser shots fired
@@ -297,6 +336,15 @@ function setup() {
   monstersKilledMessage.x = 650;
   monstersKilledMessage.y = 25;
   gameScene.addChild(monstersKilledMessage);
+  
+  //UI displaying number of veg collected
+  vegCounter = new Text (
+    vegCollect,
+    {font: "30px Futura", fill: "green"}
+  );
+  vegCounter.x = 480;
+  vegCounter.y = 12;
+  gameScene.addChild(vegCounter);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
@@ -307,12 +355,14 @@ function setup() {
       w = keyboard(87),
       a = keyboard(65),
       s = keyboard(83),
-      d = keyboard(68);;
+      d = keyboard(68);
 
+  
   //when space is pressed fire the lazer!
   shoot.press = function() {
     //increment the number of laser shots fired each time the space bar is pressed
     laserShotsFired += 1;
+	ep = ep - 10
 
     //update the lasers fired message
     shotsFiredMessage.text = "Laser Shots: " + laserShotsFired
@@ -346,7 +396,7 @@ function setup() {
     laserShots.push(laserShot);
     gameScene.addChild(laserShot);
   }
-	  
+  //wasd to up, right ,down ,left
   w.press = function() {	
 	up.press();
   };
@@ -378,6 +428,7 @@ function setup() {
     //Change the explorer's velocity when the key is pressed
     explorer.vx = -5;
     explorer.vy = 0;
+	lastMove = "left";
   };
 
   //Left arrow key `release` method
@@ -389,43 +440,46 @@ function setup() {
     if (!right.isDown && explorer.vy === 0) {
       explorer.vx = 0;
     }
-    lastMove = "left";
+    
   };
 
   //Up
   up.press = function() {
     explorer.vy = -5;
     explorer.vx = 0;
+	lastMove = "up";
   };
   up.release = function() {
     if (!down.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
-    lastMove = "up";
+    
   };
 
   //Right
   right.press = function() {
     explorer.vx = 5;
     explorer.vy = 0;
+	lastMove = "right";
   };
   right.release = function() {
     if (!left.isDown && explorer.vy === 0) {
       explorer.vx = 0;
     }
-    lastMove = "right";
+    
   };
 
   //Down
   down.press = function() {
     explorer.vy = 5;
     explorer.vx = 0;
+	lastMove = "down";
   };
   down.release = function() {
     if (!up.isDown && explorer.vx === 0) {
       explorer.vy = 0;
     }
-    lastMove = "down";
+    
   };
 
   //Set the game state
@@ -586,7 +640,7 @@ function play() {
   
   //Ship gives player energy
   if (hitTestRectangle(explorer,ship)) {
-	ep = ep + 2;  
+	ep = ep + rechargeRate;  
   }
   
   //Max health
@@ -594,15 +648,27 @@ function play() {
 	ep = maxEp
   }
   
+  vegUncollect.forEach(function (veg) {
+  
+	  //Vetation collectable
+	  if (hitTestRectangle(explorer, veg)) {
+		  vegCollect = vegCollect + 1;
+		  vegCounter.text = vegCollect;
+		  veg.visible = false;
+		  
+		  var vegCollectIndex = vegUncollect.indexOf(veg);
+			  vegUncollect.splice(vegCollectIndex, 1);
+	  }
+    });
   
   //If the explorer is hit...
   if(explorerHit) {
 
     //Make the explorer semi-transparent
-    explorer.alpha = 0.5;
+    explorer.alpha = .5;
 
     //Reduce the width of the health bar's inner rectangle by 1 pixel
-    ep -= 1;
+    ep -= damageRate;
 
   } else {
 
