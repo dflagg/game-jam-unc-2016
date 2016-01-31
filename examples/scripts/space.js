@@ -4,9 +4,6 @@
 var GAME_BOARD_WIDTH = 800;
 var GAME_BOARD_HEIGHT = 600;
 
-//Title Screen
-var TITLE_SCREEN = "images/space/TitleScreen.jpg";
-
 //Playable area
 var PLAY_ARENA_WIDTH = 700;
 var PLAY_ARENA_HEIGHT = 500;
@@ -94,9 +91,17 @@ var PLAYER_WALK_FREQUENCY = 8;
 var running = true;
 
 //if the prologue is running
-var prologueRunning = true;
+var prologueRunning = false;
 var prologueCurrentScreen = 0;
 var PROLOGUE_SCREENS = ["images/space/Prologue1.jpg","images/space/Prologue2.jpg","images/space/Prologue3.jpg"];
+
+var epilogueRunning = false;
+var epilogueCurrentScreen = 0;
+var EPILOGUE_SCREENS = ["images/space/Epilogue1.jpg","images/space/Epilogue2.jpg","images/space/Epilogue3.jpg",
+                        "images/space/Epilogue4.jpg","images/space/Epilogue5.jpg","images/space/Epilogue6.jpg"];
+
+var TITLE_SCREEN_IMG = "images/space/TitleScreen.jpg";
+var titleRunning = true;
 
 var currentArena = 11;
 
@@ -137,6 +142,11 @@ PROLOGUE_SCREENS.forEach(function(img) {
     loader.add(img);
 });
 
+//load the epilogue screens
+EPILOGUE_SCREENS.forEach(function(img) {
+    loader.add(img);
+});
+
 //load all the player images for player animations
 PLAYER_BACK_IMGS.forEach(function(img) {
     loader.add(img);
@@ -166,7 +176,7 @@ loader
   .add(GAME_ARENA_2_2_IMG)
   .add(GAME_ARENA_2_3_IMG)
   .add(SHELL_DROP_IMG)
-  .add(TITLE_SCREEN)
+  .add(TITLE_SCREEN_IMG)
   .load(setup);
 
 //Define variables that might be used in more
@@ -178,7 +188,7 @@ var state, explorer, monsters, chimes, exit, player, dungeon,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
 	shellsCollectedMessage, prologueScene, pauseScene, prologueScreen, crysUncollect,
-	crysCollect, crysCounter, crys;
+	crysCollect, crysCounter, crys, epilogueScene, epilogueScreen;
 
 	
 function setup() {
@@ -348,12 +358,12 @@ function setup() {
   }
   
   //Make the monsters
-  var numberOfMonsters = 6,
+  var numberOfMonsters = 3,
       spacing = 48,
       xOffset = 150,
       speed = 2,
       direction = 1,
-      caveMonsterCount = 3;
+      caveMonsterCount = 0;
 
   //An array to store all the monsters
   monsters = [];
@@ -565,6 +575,26 @@ function setup() {
   //toggle pause
   enter.press = function() {
 
+    if(epilogueRunning) {
+
+        epilogueCurrentScreen += 1;
+
+        if(epilogueCurrentScreen < EPILOGUE_SCREENS.length) {
+
+            epilogueScreen = new Sprite(resources[EPILOGUE_SCREENS[epilogueCurrentScreen]].texture);
+            epilogueScreen.width = GAME_BOARD_WIDTH;
+            epilogueScreen.height = GAME_BOARD_HEIGHT;
+            epilogueScene.addChild(epilogueScreen);
+
+        } else {
+
+            //nothing
+
+        }
+
+    }
+
+
     //check if the prologue is currently running
     if(prologueRunning) {
 
@@ -574,10 +604,8 @@ function setup() {
         //if there are more prologue screens load the next screen otherwise hide the prologue screen and start the game
         if(prologueCurrentScreen < PROLOGUE_SCREENS.length) {
             prologueScreen = new Sprite(resources[PROLOGUE_SCREENS[prologueCurrentScreen]].texture);
-            prologueScreen.width = PLAY_ARENA_WIDTH;
-            prologueScreen.height = PLAY_ARENA_HEIGHT;
-            prologueScreen.x = PLAY_AREA_ORIGIN_X;
-            prologueScreen.y = PLAY_AREA_ORIGIN_Y;
+            prologueScreen.width = GAME_BOARD_WIDTH;
+            prologueScreen.height = GAME_BOARD_HEIGHT;
             prologueScene.addChild(prologueScreen);
         } else {
             //make the prologue scene invisible
@@ -752,7 +780,7 @@ function setup() {
   //Start the game loop
   gameLoop();
 
-  //run the initial prologue screens
+  //run the prologue
   prologue();
 
 }
@@ -833,7 +861,6 @@ function play() {
       }
 
     }
-	
 	
 
     //Contain the explorer inside the area of the dungeon
@@ -1257,7 +1284,7 @@ function play() {
 
             removeAllMonsters();
 
-            createMonsters(6, 3);
+            createMonsters(3, 0);
 
         }
 
@@ -1290,6 +1317,19 @@ function play() {
             removeAllMonsters();
 
             createMonsters(0, 5);
+
+        }
+
+        //check if the explorer hit the bottom border
+        if( (explorer.y + explorer.height) >= (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y)) {
+
+            currentArena = 0;
+
+            removeAllMonsters();
+
+            epilogueRunning = true;
+
+            epilogue();
 
         }
 
@@ -1440,17 +1480,34 @@ function prologue() {
     gameScene.visible = false;
     running = false;
 
+    prologueRunning = true;
+    prologueCurrentScreen = 0;
+    titleRunning = false;
+
     //create the prologue scene
     prologueScene = new Container();
     stage.addChild(prologueScene);
 
     prologueScreen = new Sprite(resources[PROLOGUE_SCREENS[prologueCurrentScreen]].texture);
-    prologueScreen.width = PLAY_ARENA_WIDTH;
-    prologueScreen.height = PLAY_ARENA_HEIGHT;
-    prologueScreen.x = PLAY_AREA_ORIGIN_X;
-    prologueScreen.y = PLAY_AREA_ORIGIN_Y;
+    prologueScreen.width = GAME_BOARD_WIDTH;
+    prologueScreen.height = GAME_BOARD_HEIGHT;
     prologueScene.addChild(prologueScreen);
 
+}
+
+//load the epilogue
+function epilogue() {
+    gameScene.visible = false;
+    running = false;
+
+    //create the prologue scene
+    epilogueScene = new Container();
+    stage.addChild(epilogueScene);
+
+    epilogueScreen = new Sprite(resources[EPILOGUE_SCREENS[epilogueCurrentScreen]].texture);
+    epilogueScreen.width = GAME_BOARD_WIDTH;
+    epilogueScreen.height = GAME_BOARD_HEIGHT;
+    epilogueScene.addChild(epilogueScreen);
 }
 
 //create the game arena for a particular image
