@@ -31,12 +31,15 @@ var CRYSTAL_UI_X = 300;
 //UI Food
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
 var VEG_UI_Y = 10;
-var VEG_UI_X = 450;
+var VEG_UI_X = 400;
 
 //UI carapaces
 var SHELL_ICON_UI_IMG = "images/space/ShellIcon.png"
 var SHELL_UI_Y = 10;
-var SHELL_UI_X = 600;
+var SHELL_UI_X = 500;
+var SHELL_DROP_IMG = "images/space/ShellPickup.png"
+var SHELL_DROP_WIDTH = 25;
+var SHELL_DROP_HEIGHT = 25;
 
 //Laser details
 var LASER_SHOT_IMG = "images/space/Shot.png";
@@ -131,6 +134,7 @@ loader
   .add(LASER_SHOT_IMG)
   .add(ENERGY_BAR_UI_IMG)
   .add(GAME_ARENA_START_IMG)
+  .add(SHELL_DROP_IMG)
   .load(setup);
 
 //Define variables that might be used in more
@@ -140,9 +144,13 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     ship, crystalUi, vegUi, shellUi, laserShots, lastMove, energyBarUi,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
-	caveMonsters, vegUncollect, vegCollect, vegCounter, veg;
+	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
+	shellsCollectedMessage;
 
 function setup() {
+
+  //initially zero shells have been collected
+  shellsCollected = 0;
 
   //initially the player should not be moving
   playerMoving = false;
@@ -181,7 +189,7 @@ function setup() {
   //Door
   door = new Sprite(id["door.png"]);
   door.position.set(32, 0);
-  gameScene.addChild(door);
+  //gameScene.addChild(door);
 
   //ship
   ship = new Sprite(resources[SHIP_IMG].texture)
@@ -238,15 +246,12 @@ function setup() {
   treasure = new Sprite(id["treasure.png"]);
   treasure.x = gameScene.width - treasure.width - 48;
   treasure.y = gameScene.height / 2 - treasure.height / 2;
-  gameScene.addChild(treasure);
-  
+  //gameScene.addChild(treasure);
  
   //array to contain veg on map
   vegUncollect = [];
   vegCollect = 0;
   var numberOfVeg = 5;
-  
-  
   
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfVeg; i++) {
@@ -291,7 +296,9 @@ function setup() {
 
   //array to contain all laser shots in the arena
   laserShots = [];
-  
+
+  //shells of dead monsters
+  shells = [];
 
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfMonsters; i++) {
@@ -413,6 +420,15 @@ function setup() {
   message.y = stage.height / 2 - 42;
   gameOverScene.addChild(message);
 
+  //the count of shells collected
+  shellsCollectedMessage = new Text(
+    shellsCollected,
+    {font: "30px Futura", fill: "green"}
+  )
+  shellsCollectedMessage.x = 550;
+  shellsCollectedMessage.y = 12;
+  gameScene.addChild(shellsCollectedMessage);
+
   //the message displaying the number of laser shots fired
   shotsFiredMessage = new Text (
     "Laser Shots: " + laserShotsFired,
@@ -436,7 +452,7 @@ function setup() {
     vegCollect,
     {font: "30px Futura", fill: "green"}
   );
-  vegCounter.x = 480;
+  vegCounter.x = 450;
   vegCounter.y = 12;
   gameScene.addChild(vegCounter);
 
@@ -667,7 +683,7 @@ function play() {
   }
 
   //Contain the explorer inside the area of the dungeon
-  contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
+  contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
   //contain(explorer, stage);
 
   //Set `explorerHit` to `false` before checking for a collision
@@ -739,7 +755,7 @@ function play() {
     }
 
     //Check the monster's screen boundaries
-    var monsterHitsWall = contain(monster, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
+    var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
 
     //If the monster hits the top or bottom of the stage, reverse
     //its direction
@@ -823,7 +839,8 @@ function play() {
     }
 
     //Check the monster's screen boundaries
-    var monsterHitsWall = contain(monster, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH, height: PLAY_ARENA_HEIGHT});
+    var monsterHitsWall = contain(explorer, {x: PLAY_AREA_ORIGIN_X, y: PLAY_AREA_ORIGIN_Y, width: PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X, height: PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y});
+
 
     //If the monster hits the top or bottom of the stage, reverse
     //its direction
@@ -850,6 +867,9 @@ function play() {
       //check if the laser hit the monster
       if(hitTestRectangle(laser, monster)) {
 
+          //create a shell where the monster had been
+          dropShell(monster.x, monster.y);
+
           //increment the number of monsters killed
           monstersKilled += 1;
 
@@ -859,6 +879,9 @@ function play() {
           //stop the monster
           monster.vy = 0;
           monster.vx = 0;
+
+          //remove the monster image
+          monster.visible = false;
 
           //hide the laser image
           laser.visible = false;
@@ -881,6 +904,9 @@ function play() {
       //check if the laser hit the monster
       if(hitTestRectangle(laser, monster)) {
 
+          //create a shell where the monster had been
+          dropShell(monster.x, monster.y);
+
           //increment the number of monsters killed
           monstersKilled += 1;
 
@@ -890,6 +916,9 @@ function play() {
           //stop the monster
           monster.vy = 0;
           monster.vx = 0;
+
+          //remove the monster image
+          monster.visible = false;
 
           //hide the laser image
           laser.visible = false;
@@ -956,6 +985,29 @@ function play() {
 			  vegUncollect.splice(vegCollectIndex, 1);
 	  }
     });
+
+  //iterate through all the shells to see if the player picks them up
+  shells.forEach(function (shell) {
+
+    //check if the player picked up the shell
+    if(hitTestRectangle(explorer, shell)) {
+
+        //incrememnt the counter for shells collected
+        shellsCollected += 1;
+
+        //update the shells collected message
+        shellsCollectedMessage.text = shellsCollected;
+
+        //hide the shell since its been picked up
+        shell.visible = false;
+
+        //remove the shell from the shells array
+        var shellCollectedIndex = shells.indexOf(shell);
+        shells.splice(shellCollectedIndex,1);
+
+    }
+
+  });
   
   //If the explorer is hit...
   if(explorerHit) {
@@ -1086,6 +1138,17 @@ function hitTestRectangle(r1, r2) {
   return hit;
 };
 
+//create a shell from the death of a monster
+function dropShell(x,y) {
+    //create a shell where the monster had been
+    var shell = new Sprite(resources[SHELL_DROP_IMG].texture);
+    shell.width = SHELL_DROP_WIDTH;
+    shell.height = SHELL_DROP_HEIGHT;
+    shell.x = x;
+    shell.y = y;
+    shells.push(shell);
+    gameScene.addChild(shell);
+}
 
 //The `randomInt` helper function
 function randomInt(min, max) {
