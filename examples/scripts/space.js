@@ -10,6 +10,9 @@ var PLAY_ARENA_HEIGHT = 500;
 var PLAY_AREA_ORIGIN_X = 50;
 var PLAY_AREA_ORIGIN_Y = 50;
 var GAME_ARENA_START_IMG = "images/space/Area1-1.jpg"
+var GAME_ARENA_2_1_IMG = "images/space/Area2-1.jpg"
+var GAME_ARENA_2_2_IMG = "images/space/Area2-2.jpg"
+var GAME_ARENA_2_3_IMG = "images/space/Area2-3.jpg"
 
 //Crashed ship details
 var SHIP_IMG = "images/space/ship.jpeg"
@@ -90,6 +93,8 @@ var prologueRunning = true;
 var prologueCurrentScreen = 0;
 var PROLOGUE_SCREENS = ["images/space/Prologue1.jpg","images/space/Prologue2.jpg","images/space/Prologue3.jpg"];
 
+var currentArena = 11;
+
 //fonts 
 var font1 = "fonts/CHECKBK0.TTF"
 var font2 = "fonts/TABU TRIAL____.otf"
@@ -147,6 +152,9 @@ loader
   .add(LASER_SHOT_IMG)
   .add(ENERGY_BAR_UI_IMG)
   .add(GAME_ARENA_START_IMG)
+  .add(GAME_ARENA_2_1_IMG)
+  .add(GAME_ARENA_2_2_IMG)
+  .add(GAME_ARENA_2_3_IMG)
   .add(SHELL_DROP_IMG)
   .load(setup);
 
@@ -191,13 +199,8 @@ function setup() {
   //Create an alias for the texture atlas frame ids
   id = resources["images/treasureHunter.json"].textures;
 
-  //Dungeon
-  dungeon = new Sprite(resources[GAME_ARENA_START_IMG].texture);
-  dungeon.width = PLAY_ARENA_WIDTH;
-  dungeon.height = PLAY_ARENA_HEIGHT;
-  dungeon.x = PLAY_AREA_ORIGIN_X;
-  dungeon.y = PLAY_AREA_ORIGIN_Y;
-  gameScene.addChild(dungeon);
+  //update the arena to the initial start area
+  updateArena(GAME_ARENA_START_IMG);
 
   //Door
   door = new Sprite(id["door.png"]);
@@ -1093,13 +1096,243 @@ function play() {
     }
 
     //Does the explorer have enough health? If the width of the `innerBar`
-      //is less than zero, end the game and display "You lost!"
-      if (healthBar.outer.width < 0) {
-        state = end;
-        message.text = "You lost!";
-      }
+    //is less than zero, end the game and display "You lost!"
+    if (healthBar.outer.width < 0) {
+      state = end;
+      message.text = "You lost!";
+    }
+
+    //check if in the start aread
+    if(currentArena == 11) {
+
+        //check if the explorer hit the bottom border
+        if( (explorer.y + explorer.height) >= (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y)) {
+
+            currentArena = 22;
+
+            updateArena(GAME_ARENA_2_2_IMG);
+
+            explorer.y = PLAY_AREA_ORIGIN_Y + 10;
+
+            updateExplorer(PLAYER_FRONT_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(3, 1);
+
+        }
+
+    }
+
+    //down and left
+    if(currentArena == 21) {
+
+        if((explorer.x + explorer.width) >= (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) ) {
+
+            currentArena = 22;
+
+            updateArena(GAME_ARENA_2_2_IMG);
+
+            explorer.x = PLAY_AREA_ORIGIN_X + 10;
+
+            updateExplorer(PLAYER_RIGHT_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(3, 1);
+
+        }
+
+    }
+
+    //directly down
+    if(currentArena == 22) {
+
+        if(explorer.y <= PLAY_AREA_ORIGIN_Y) {
+
+            currentArena = 11;
+
+            updateArena(GAME_ARENA_START_IMG);
+
+            gameScene.addChild(ship);
+
+            explorer.y = (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y) - explorer.height - 10;
+
+            updateExplorer(PLAYER_BACK_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(6, 3);
+
+        }
+
+        if(explorer.x <= PLAY_AREA_ORIGIN_X) {
+
+            currentArena = 21;
+
+            updateArena(GAME_ARENA_2_1_IMG);
+
+            explorer.x = (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) - explorer.width - 10;
+
+            updateExplorer(PLAYER_LEFT_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(8, 0);
+
+        }
+
+        if((explorer.x + explorer.width) >= (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) ) {
+
+            currentArena = 23;
+
+            updateArena(GAME_ARENA_2_3_IMG);
+
+            explorer.x = PLAY_AREA_ORIGIN_X + 10;
+
+            updateExplorer(PLAYER_RIGHT_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(0, 5);
+
+        }
+
+    }
+
+    if(currentArena == 23) {
+
+        if(explorer.x <= PLAY_AREA_ORIGIN_X) {
+
+            currentArena = 22;
+
+            updateArena(GAME_ARENA_2_2_IMG);
+
+            explorer.x = (PLAY_ARENA_WIDTH + PLAY_AREA_ORIGIN_X) - explorer.width - 10;
+
+            updateExplorer(PLAYER_LEFT_IMGS[0]);
+
+            removeAllMonsters();
+
+            createMonsters(3, 1);
+
+        }
+
+    }
 
   }
+
+}
+
+//create new monsters
+function createMonsters(monsterNum, caveMonsterNum) {
+
+    //Make the monsters
+    var spacing = 48,
+      xOffset = 150,
+      speed = 2,
+      direction = 1;
+
+    for (var i = 0; i < monsterNum; i++) {
+
+        //Make a monster
+        var monster = new Sprite(resources[SURFACE_MONSTER_IMGS[0]].texture);
+        monster.width = SURFACE_MONSTER_WIDTH;
+        monster.height = SURFACE_MONSTER_HEIGHT;
+
+        //Space each monster horizontally according to the `spacing` value.
+        //`xOffset` determines the point from the left of the screen
+        //at which the first monster should be added
+        var x = spacing * i + xOffset;
+
+        //Give the monster a random y position
+        var y = randomInt(0, stage.height - monster.height);
+
+        //Set the monster's position
+        monster.x = x;
+        monster.y = y;
+
+        //Set the monster's vertical velocity. `direction` will be either `1` or
+        //`-1`. `1` means the enemy will move down and `-1` means the monster will
+        //move up. Multiplying `direction` by `speed` determines the monster's
+        //vertical direction
+        monster.vy = speed * direction;
+        monster.vx = 0;
+
+        //Reverse the direction for the next monster
+        direction *= -1;
+
+        //Push the monster into the `monsters` array
+        monsters.push(monster);
+
+        //Add the monster to the `gameScene`
+        gameScene.addChild(monster);
+
+    }
+
+    for(var i=0; i<caveMonsterNum; i++) {
+
+        var monster = new Sprite(resources[CAVE_MONSTER_IMGS[0]].texture);
+        monster.width = CAVE_MONSTER_WIDTH;
+        monster.height = CAVE_MONSTER_HEIGHT;
+
+        //Space each monster horizontally according to the `spacing` value.
+        //`xOffset` determines the point from the left of the screen
+        //at which the first monster should be added
+        var x = spacing * i + xOffset;
+
+        //Give the monster a random y position
+        var y = randomInt(0, stage.height - monster.height);
+
+        //Set the monster's position
+        monster.x = x;
+        monster.y = y;
+
+        //Set the monster's vertical velocity. `direction` will be either `1` or
+        //`-1`. `1` means the enemy will move down and `-1` means the monster will
+        //move up. Multiplying `direction` by `speed` determines the monster's
+        //vertical direction
+        monster.vy = speed * direction;
+        monster.vx = 0;
+
+        //Reverse the direction for the next monster
+        direction *= -1;
+
+        //Push the monster into the `monsters` array
+        caveMonsters.push(monster);
+
+        //Add the monster to the `gameScene`
+        gameScene.addChild(monster);
+
+      }
+
+}
+
+//remove all monsters from the game
+function removeAllMonsters() {
+
+    //keep trying to remove the monsters until they are all gone
+    while(monsters.length > 0 || caveMonsters.length > 0) {
+
+        monsters.forEach(function (monster) {
+
+            monster.visible = false;
+
+            var monsterIdx = monsters.indexOf(monster);
+            monsters.splice(monsterIdx,1);
+
+        });
+
+        caveMonsters.forEach(function (monster) {
+
+            monster.visible = false;
+
+            var monsterIdx = caveMonsters.indexOf(monster);
+            caveMonsters.splice(monsterIdx,1);
+
+        });
+
+    }
 
 }
 
@@ -1124,6 +1357,16 @@ function prologue() {
     prologueScreen.y = PLAY_AREA_ORIGIN_Y;
     prologueScene.addChild(prologueScreen);
 
+}
+
+//create the game arena for a particular image
+function updateArena(gameArena) {
+    dungeon = new Sprite(resources[gameArena].texture);
+    dungeon.width = PLAY_ARENA_WIDTH;
+    dungeon.height = PLAY_ARENA_HEIGHT;
+    dungeon.x = PLAY_AREA_ORIGIN_X;
+    dungeon.y = PLAY_AREA_ORIGIN_Y;
+    gameScene.addChild(dungeon);
 }
 
 /* Helper functions */
