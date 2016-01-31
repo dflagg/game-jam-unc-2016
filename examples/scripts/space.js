@@ -1273,6 +1273,9 @@ function play() {
         //check if the explorer hit the bottom border
         if( (explorer.y + explorer.height) >= (PLAY_ARENA_HEIGHT + PLAY_AREA_ORIGIN_Y)) {
 
+            ship.x = GAME_BOARD_WIDTH;
+            ship.y = GAME_BOARD_HEIGHT;
+
             currentArena = 22;
 
             updateArena(GAME_ARENA_2_2_IMG);
@@ -1314,6 +1317,9 @@ function play() {
     if(currentArena == 22) {
 
         if(explorer.y <= PLAY_AREA_ORIGIN_Y) {
+
+            ship.y = SHIP_POSITION_Y;
+            ship.x = SHIP_POSITION_X;
 
             currentArena = 11;
 
