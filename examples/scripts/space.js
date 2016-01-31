@@ -33,6 +33,7 @@ var PLAYER_START_X = 450;
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
 var CRYSTAL_UI_X = 300;
+var CRYS_ORE_IMG = "images/space/CrystalOre.png"
 var CRYS_PICKUP_IMG = "images/space/CrystalPickup.png"
 
 //UI Food
@@ -155,6 +156,7 @@ loader
   .add("images/treasureHunter.json")
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
+  .add(CRYS_ORE_IMG)
   .add(CRYS_PICKUP_IMG)
   .add(VEG_ICON_UI_IMG)
   .add(VEG_PICKUP_IMG)
@@ -178,7 +180,7 @@ var state, explorer, monsters, chimes, exit, player, dungeon,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
 	shellsCollectedMessage, prologueScene, pauseScene, prologueScreen, crysUncollect,
-	crysCollect, crysCounter, crys;
+	crysCollect, crysCounter, crys, ore, oreUnGot;
 
 	
 function setup() {
@@ -246,7 +248,7 @@ function setup() {
   ship.height = SHIP_HEIGHT;
   gameScene.addChild(ship);
 
-  //crystal icon
+  //crystal UI icon
   crystalUi = new Sprite(resources[CRYSTAL_ICON_UI_IMG].texture)
   crystalUi.y = CRYSTAL_UI_Y;
   crystalUi.x = CRYSTAL_UI_X;
@@ -254,7 +256,7 @@ function setup() {
   crystalUi.height = 35;
   gameScene.addChild(crystalUi);
 
-  //veg icon
+  //veg UI icon
   vegUi = new Sprite(resources[VEG_ICON_UI_IMG].texture)
   vegUi.y = VEG_UI_Y;
   vegUi.x = VEG_UI_X;
@@ -297,7 +299,11 @@ function setup() {
   //array to contain crys on map
   crysUncollect = [];
   crysCollect = 0;
-  var numberOfCrys = 4;
+  var numberOfCrys = 0;
+  
+  //array to contain ore on map
+  oreUnGot = [];
+  var numberOfOre = 4;
   
   //Make as many monster as there are `numberOfVeg`
   for (var i = 0; i < numberOfVeg; i++) {
@@ -323,28 +329,28 @@ function setup() {
     gameScene.addChild(veg);
   }
   
-  //Make as many monster as there are `numberOfCrys`
-  for (var i = 0; i < numberOfCrys; i++) {
+  //Make as many ore as there are `numberOfOre`
+  for (var i = 0; i < numberOfOre; i++) {
 
     //Make a crys
-    var crys = new Sprite(resources[CRYS_PICKUP_IMG].texture);
+    var ore = new Sprite(resources[CRYS_ORE_IMG].texture);
     //crys.width = ;
     //crys.height = ;
 
     //Determing coordinates
-    var crysX = randomInt(100, stage.height - 100);
+    var oreX = randomInt(100, stage.height - 100);
 
-    var crysY = randomInt(100, stage.height - 100);
+    var oreY = randomInt(100, stage.height - 100);
 
     //Set the crys's position
-    crys.x = crysX;
-    crys.y = crysY;
+    ore.x = oreX;
+    ore.y = oreY;
 
     //Push the crys into the `crysUncollect` array
-    crysUncollect.push(crys);
+    oreUnGot.push(ore);
 
     //Add the crys to the `gameScene`
-    gameScene.addChild(crys);
+    gameScene.addChild(ore);
   }
   
   //Make the monsters
@@ -366,6 +372,9 @@ function setup() {
 
   //shells of dead monsters
   shells = [];
+  
+  //crystal drops
+  
 
   //Make as many monster as there are `numberOfMonsters`
   for (var i = 0; i < numberOfMonsters; i++) {
@@ -1016,13 +1025,18 @@ function play() {
       laser.y += laser.vy;
 
       //iterate through all the monsters to look for laser hits
-      monsters.forEach(function(monster) {
+      
+	  
+	  monsters.forEach(function(monster) {
 
         //check if the laser hit the monster
         if(hitTestRectangle(laser, monster)) {
 
             //create a shell where the monster had been
-            dropShell(monster.x, monster.y);
+            var shellchance = randomInt(0, 100)
+			if(shellchance < 33) {
+				dropShell(monster.x, monster.y);
+			}
 
             //increment the number of monsters killed
             monstersKilled += 1;
@@ -1049,8 +1063,34 @@ function play() {
             laserShots.splice(expendedLaserIndex, 1);
 
         }
+		
+		
 
       });
+	oreUnGot.forEach(function(ore) {
+		//check if the laser hit the ore
+        if(hitTestRectangle(laser, ore)) {
+
+            //create a crystal where the ore had been
+          	dropCrys(ore.x, ore.y);
+			
+
+            //remove the ore image
+            ore.visible = false;
+
+            //hide the laser image
+            laser.visible = false;
+
+            //find the index of the ore we just killed so we can remove it
+            var oreIndex = oreUnGot.indexOf(ore);
+            oreUnGot.splice(oreIndex, 1);
+
+            //find the index of the laser that hit the monster so we can remove the laser
+            var expendedLaserIndex = laserShots.indexOf(laser);
+            laserShots.splice(expendedLaserIndex, 1);
+
+        }
+	});
 
       //iterate through all the cave monsters to look for laser hits
       caveMonsters.forEach(function(monster) {
@@ -1059,7 +1099,10 @@ function play() {
         if(hitTestRectangle(laser, monster)) {
 
             //create a shell where the monster had been
-            dropShell(monster.x, monster.y);
+            var shellchance = randomInt(0, 100)
+			if(shellchance < 33) {
+				dropShell(monster.x, monster.y);
+			}
 
             //increment the number of monsters killed
             monstersKilled += 1;
@@ -1559,6 +1602,17 @@ function dropShell(x,y) {
     shell.y = y;
     shells.push(shell);
     gameScene.addChild(shell);
+}
+
+function dropCrys(x,y) {
+    //create a crys where the ore had been
+    var crys = new Sprite(resources[CRYS_PICKUP_IMG].texture);
+   // crys.width = SHELL_DROP_WIDTH;
+   // crys.height = SHELL_DROP_HEIGHT;
+    crys.x = x;
+    crys.y = y;
+    crysUncollect.push(crys);
+    gameScene.addChild(crys);
 }
 
 //The `randomInt` helper function
