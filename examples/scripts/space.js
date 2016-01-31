@@ -518,7 +518,7 @@ function setup() {
   //the message displaying the number of laser shots fired
   shotsFiredMessage = new Text (
     "Laser Shots: " + laserShotsFired,
-    {font: "14px Futura", fill: "white"}
+    {font: "14px Futura", fill: "green"}
   );
   shotsFiredMessage.x = 650;
   shotsFiredMessage.y = 10;
@@ -527,7 +527,7 @@ function setup() {
   //the message displaying the number of monsters killed
   monstersKilledMessage = new Text (
     "Monsters killed: " + monstersKilled,
-    {font: "14px Futura", fill: "white"}
+    {font: "14px Futura", fill: "green"}
   );
   monstersKilledMessage.x = 650;
   monstersKilledMessage.y = 25;
@@ -1455,7 +1455,7 @@ function createMonsters(monsterNum, caveMonsterNum) {
         var x = spacing * i + xOffset;
 
         //Give the monster a random y position
-        var y = randomInt(0, stage.height - monster.height);
+        var y = randomInt(100, stage.height - monster.height - 200);
 
         //Set the monster's position
         monster.x = x;
@@ -1491,7 +1491,7 @@ function createMonsters(monsterNum, caveMonsterNum) {
         var x = spacing * i + xOffset;
 
         //Give the monster a random y position
-        var y = randomInt(0, stage.height - monster.height);
+        var y = randomInt(100, stage.height - monster.height - 200);
 
         //Set the monster's position
         monster.x = x;
@@ -1587,9 +1587,9 @@ function createResources(numberOfVeg, numberOfOre) {
     //veg.height = ;
 
     //Determing coordinates
-    var vegX = randomInt(100, stage.height - 100);
+    var vegX = randomInt(100, stage.width - 200);
 
-    var vegY = randomInt(100, stage.height - 100);
+    var vegY = randomInt(100, stage.height - 200);
 
     //Set the veg's position
     veg.x = vegX;
@@ -1611,9 +1611,9 @@ function createResources(numberOfVeg, numberOfOre) {
     //crys.height = ;
 
     //Determing coordinates
-    var oreX = randomInt(100, stage.height - 100);
+    var oreX = randomInt(100, stage.width - 200);
 
-    var oreY = randomInt(100, stage.height - 100);
+    var oreY = randomInt(100, stage.height - 200);
 
     //Set the crys's position
     ore.x = oreX;
