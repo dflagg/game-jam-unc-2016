@@ -30,6 +30,7 @@ var PLAYER_START_X = 450;
 var CRYSTAL_ICON_UI_IMG = "images/space/CrystalIcon.png"
 var CRYSTAL_UI_Y = 10;
 var CRYSTAL_UI_X = 300;
+var CRYS_PICKUP_IMG = "images/space/CrystalPickup.png"
 
 //UI Food
 var VEG_ICON_UI_IMG = "images/space/VegetationIcon.png"
@@ -136,6 +137,7 @@ loader
   .add("images/treasureHunter.json")
   .add(SHIP_IMG)
   .add(CRYSTAL_ICON_UI_IMG)
+  .add(CRYS_PICKUP_IMG)
   .add(VEG_ICON_UI_IMG)
   .add(VEG_PICKUP_IMG)
   .add(SHELL_ICON_UI_IMG)
@@ -154,7 +156,8 @@ var state, explorer, treasure, monsters, chimes, exit, player, dungeon,
     monstersKilled, laserShotsFired, shotsFiredMessage, monstersKilledMessage,
 	epUseSpeed, ep, epBarLength, maxEp, walkTick, playTick, playerMoving,
 	caveMonsters, vegUncollect, vegCollect, vegCounter, veg, shells, shellsCollected,
-	shellsCollectedMessage, titlescreen, testText, Titlemessage;
+	shellsCollectedMessage, titlescreen, testText, Titlemessage, crysUncollect
+	crysCollect, crysCounter, crys;
 
 	
  // Attempted title state 
@@ -331,7 +334,12 @@ function setup() {
   vegCollect = 0;
   var numberOfVeg = 5;
   
-  //Make as many monster as there are `numberOfMonsters`
+  //array to contain crys on map
+  crysUncollect = [];
+  crysCollect = 0;
+  var numberOfCrys = 4;
+  
+  //Make as many monster as there are `numberOfVeg`
   for (var i = 0; i < numberOfVeg; i++) {
 
     //Make a veg
@@ -339,23 +347,44 @@ function setup() {
     //veg.width = ;
     //veg.height = ;
 
-    //Space each monster horizontally according to the `spacing` value.
-    //`xOffset` determines the point from the left of the screen
-    //at which the first monster should be added
+    //Determing coordinates
     var vegX = randomInt(100, stage.height - 100);
 
-    //Give the monster a random y position
     var vegY = randomInt(100, stage.height - 100);
 
-    //Set the monster's position
+    //Set the veg's position
     veg.x = vegX;
     veg.y = vegY;
 
-    //Push the monster into the `monsters` array
+    //Push the veg into the `vegUncollect` array
     vegUncollect.push(veg);
 
-    //Add the monster to the `gameScene`
+    //Add the veg to the `gameScene`
     gameScene.addChild(veg);
+  }
+  
+  //Make as many monster as there are `numberOfCrys`
+  for (var i = 0; i < numberOfCrys; i++) {
+
+    //Make a crys
+    var crys = new Sprite(resources[CRYS_PICKUP_IMG].texture);
+    //crys.width = ;
+    //crys.height = ;
+
+    //Determing coordinates
+    var crysX = randomInt(100, stage.height - 100);
+
+    var crysY = randomInt(100, stage.height - 100);
+
+    //Set the crys's position
+    crys.x = crysX;
+    crys.y = crysY;
+
+    //Push the crys into the `crysUncollect` array
+    crysUncollect.push(crys);
+
+    //Add the crys to the `gameScene`
+    gameScene.addChild(crys);
   }
   
   //Make the monsters
@@ -369,7 +398,7 @@ function setup() {
   //An array to store all the monsters
   monsters = [];
 
-  //an arrat to store the cave monsters
+  //an array to store the cave monsters
   caveMonsters = [];
 
   //array to contain all laser shots in the arena
@@ -451,6 +480,8 @@ function setup() {
     gameScene.addChild(monster);
 
   }
+  
+  
 
 
   
@@ -536,6 +567,15 @@ function setup() {
   vegCounter.x = 450;
   vegCounter.y = 12;
   gameScene.addChild(vegCounter);
+  
+  //UI displaying number of crys collected
+  crysCounter = new Text (
+    crysCollect,
+    {font: "30px Futura", fill: "green"}
+  );
+  crysCounter.x = 350;
+  crysCounter.y = 12;
+  gameScene.addChild(crysCounter);
 
   //Capture the keyboard arrow keys
   var left = keyboard(37),
@@ -1071,9 +1111,12 @@ function play() {
 	ep = ep + rechargeRate;  
   }
   
-  //Max health
+  //Max/min health
   if (ep > maxEp){
 	ep = maxEp
+  }
+  if (ep < 0){
+	ep = 0
   }
   
   vegUncollect.forEach(function (veg) {
@@ -1088,7 +1131,20 @@ function play() {
 			  vegUncollect.splice(vegCollectIndex, 1);
 	  }
     });
-
+	
+  crysUncollect.forEach(function (crys) {
+  
+	  //Crystal collectable
+	  if (hitTestRectangle(explorer, crys)) {
+		  crysCollect = crysCollect + 1;
+		  crysCounter.text = crysCollect;
+		  crys.visible = false;
+		  
+		  var crysCollectIndex = crysUncollect.indexOf(crys);
+			  crysUncollect.splice(crysCollectIndex, 1);
+	  }
+    });
+	
   //iterate through all the shells to see if the player picks them up
   shells.forEach(function (shell) {
 
