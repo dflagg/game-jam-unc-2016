@@ -1286,6 +1286,10 @@ function play() {
 
             removeAllMonsters();
 
+            removeAllResources();
+
+            createResources(3, 3);
+
             createMonsters(3, 1);
 
         }
@@ -1306,6 +1310,10 @@ function play() {
             updateExplorer(PLAYER_RIGHT_IMGS[0]);
 
             removeAllMonsters();
+
+            removeAllResources();
+
+            createResources(3, 3);
 
             createMonsters(3, 1);
 
@@ -1333,6 +1341,10 @@ function play() {
 
             removeAllMonsters();
 
+            removeAllResources();
+
+            createResources(3,3);
+
             createMonsters(3, 0);
 
         }
@@ -1348,6 +1360,10 @@ function play() {
             updateExplorer(PLAYER_LEFT_IMGS[0]);
 
             removeAllMonsters();
+
+            removeAllResources();
+
+            createResources(6,0);
 
             createMonsters(8, 0);
 
@@ -1365,6 +1381,10 @@ function play() {
 
             removeAllMonsters();
 
+            removeAllResources();
+
+            createResources(0,6);
+
             createMonsters(0, 5);
 
         }
@@ -1375,6 +1395,8 @@ function play() {
             currentArena = 0;
 
             removeAllMonsters();
+
+            removeAllResources();
 
             epilogueRunning = true;
 
@@ -1399,6 +1421,10 @@ function play() {
             removeAllMonsters();
 
             createMonsters(3, 1);
+
+            removeAllResources();
+
+            createResources(3,3);
 
         }
 
@@ -1517,6 +1543,88 @@ function removeAllMonsters() {
 
     }
 
+}
+
+//remove resources from the map
+function removeAllResources() {
+
+    while(vegUncollect.length > 0) {
+
+        vegUncollect.forEach(function (veg) {
+
+            veg.visible = false;
+
+            var index = vegUncollect.indexOf(veg);
+            vegUncollect.splice(index,1);
+
+        });
+
+    }
+
+    while(oreUnGot.length > 0) {
+
+        oreUnGot.forEach(function (ore) {
+
+            ore.visible = false;
+
+            var index = oreUnGot.indexOf(ore);
+            oreUnGot.splice(index,1);
+
+        });
+
+    }
+
+}
+
+//create new resources
+function createResources(numberOfVeg, numberOfOre) {
+  //Make as many monster as there are `numberOfVeg`
+  for (var i = 0; i < numberOfVeg; i++) {
+
+    //Make a veg
+    var veg = new Sprite(resources[VEG_PICKUP_IMG].texture);
+    //veg.width = ;
+    //veg.height = ;
+
+    //Determing coordinates
+    var vegX = randomInt(100, stage.height - 100);
+
+    var vegY = randomInt(100, stage.height - 100);
+
+    //Set the veg's position
+    veg.x = vegX;
+    veg.y = vegY;
+
+    //Push the veg into the `vegUncollect` array
+    vegUncollect.push(veg);
+
+    //Add the veg to the `gameScene`
+    gameScene.addChild(veg);
+  }
+
+  //Make as many ore as there are `numberOfOre`
+  for (var i = 0; i < numberOfOre; i++) {
+
+    //Make a crys
+    var ore = new Sprite(resources[CRYS_ORE_IMG].texture);
+    //crys.width = ;
+    //crys.height = ;
+
+    //Determing coordinates
+    var oreX = randomInt(100, stage.height - 100);
+
+    var oreY = randomInt(100, stage.height - 100);
+
+    //Set the crys's position
+    ore.x = oreX;
+    ore.y = oreY;
+
+    //Push the crys into the `crysUncollect` array
+    oreUnGot.push(ore);
+
+    //Add the crys to the `gameScene`
+    gameScene.addChild(ore);
+  }
 }
 
 function end() {
